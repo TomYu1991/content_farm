@@ -3,7 +3,7 @@
 这份手册手把手带你从一台只装了 Windows 的电脑开始，搭建一个“AI 写草稿、人工审阅后发布”的静态博客，并教你日常怎么使用。不需要编程基础，只要按顺序照做。
 
 - 首次搭建大约需要 2～3 小时，大部分时间花在注册账号和填写配置上。
-- 需要准备：一台 Windows 10/11 电脑、一个常用邮箱、一张能在线支付的银行卡（给 AI 模型充值，几美元起）、能正常访问 GitHub、Cloudflare、OpenRouter 的网络。
+- 需要准备：一台 Windows 10/11 电脑、一个常用邮箱、一种能给 AI 模型服务商充值的付款方式（如 DeepSeek 等，金额很小）、能正常访问 GitHub、Cloudflare 和你所选模型服务商的网络。
 - 每一章结尾都有“检查点”。检查点没通过就先别往下做，去第 15 章找原因。
 
 ## 阅读约定
@@ -61,7 +61,8 @@
 | Environment | GitHub 里的“部署环境”，可以单独存放只给部署用的 Secret |
 | Markdown | 一种用符号排版的纯文本格式，如 `## 标题`、`- 列表` |
 | front-matter | 文章文件开头两行 `---` 之间的信息区，写标题、日期、是否草稿等 |
-| OpenRouter | AI 模型的中转服务，一个账号就能调用多家模型，按用量付费 |
+| 模型服务商 | 提供 AI 大模型接口的公司，如 DeepSeek、智谱、硅基流动，按用量付费 |
+| OpenAI 兼容接口 | 大多数模型服务商都支持的一种通用调用格式，只要填 base_url、api_key、model 三项就能接入 |
 | API Key / Token | 程序访问某个服务时用的“密码” |
 | Cloudflare Pages | 免费托管静态网站的服务，网站地址形如 `https://xxx.pages.dev` |
 | 静态网站 | 由现成 HTML 文件组成的网站，没有数据库和后台，便宜且安全 |
@@ -96,7 +97,7 @@ AI 永远只能写草稿。发布一定要经过人工审阅和人工合并，�
 | --- | --- |
 | GitHub | 公开仓库免费（含 Actions 运行时间） |
 | Cloudflare Pages | 有免费计划，个人博客通常够用 |
-| OpenRouter | 按用量付费，需要先充值。一篇文章通常只花不到 1 美分（取决于模型和长度） |
+| 模型服务商（如 DeepSeek） | 按用量付费，需要先充值。一篇文章通常只花几分钱人民币（取决于模型和长度） |
 | 域名 | 可选。不买也能用 `xxx.pages.dev` 免费地址 |
 
 以上是写作时的情况，价格和免费额度以各服务官网为准。
@@ -199,29 +200,50 @@ git config --global user.email "<你注册 GitHub 用的邮箱>"
 2. 记住你的用户名，后面会反复用到。
 3. 强烈建议开启两步验证：右上角头像 → Settings → Password and authentication → Enable two-factor authentication。
 
-### 4.2 OpenRouter（AI 模型）
+### 4.2 AI 模型服务商
 
-1. 打开 <https://openrouter.ai/>，点右上角 Sign Up 注册并登录。
-2. 充值：打开 <https://openrouter.ai/settings/credits>，点 Add Credits，按页面提示付款。第一次建议只充最低金额，够写很多篇文章。
-3. 查看模型价格：打开 <https://openrouter.ai/openai/gpt-4o-mini>，记下两个价格：
-   - Input（输入），每百万 token 多少美元；
-   - Output（输出），每百万 token 多少美元。
+本项目可以接入任何提供 “OpenAI 兼容接口” 的模型服务商。你只需要从服务商那里拿到三样东西：
 
-   写作时分别约为 0.15 和 0.60 美元，请以页面实际显示为准。第 8 章要填这两个数字。
-4. 创建 API Key：打开 <https://openrouter.ai/settings/keys>，点 Create Key：
-   - Name：填 `content-farm`；
-   - Credit limit（如有此项）：建议填一个上限，如 `2`，防止意外超支；
-   - 点 Create。
-5. 页面会显示一串以 `sk-or-` 开头的密钥。立刻复制，保存到安全的地方（如密码管理器）。它只显示这一次。
+| 名称 | 含义 | 以 DeepSeek 为例 |
+| --- | --- | --- |
+| base_url | 服务商的接口地址 | `https://api.deepseek.com` |
+| api_key | 你的密钥 | `sk-` 开头的一串字符 |
+| model | 模型名称 | `deepseek-flash` |
 
-密钥就像银行卡密码：不要发到聊天群、不要截图、不要写进任何项目文件。泄露了就回到 Keys 页面删除它，再建一个新的。
+另外还要记下模型的两个价格（输入、输出每百万 token 的价格），第 8 章设置费用上限时要用。
+
+常见服务商的 base_url（写作时的信息，以各家官方文档为准）：
+
+| 服务商 | base_url | model 在哪里找 |
+| --- | --- | --- |
+| DeepSeek | `https://api.deepseek.com` | [模型与价格页](https://api-docs.deepseek.com/quick_start/pricing)，如 `deepseek-flash` |
+| 智谱 BigModel | `https://open.bigmodel.cn/api/paas/v4` | 控制台的模型列表 |
+| 硅基流动 SiliconFlow | `https://api.siliconflow.cn/v1` | 模型广场，复制完整模型名（如 `厂商/模型名`） |
+| 阿里云百炼 | 控制台中 “OpenAI 兼容” 的地址（以 `/compatible-mode/v1` 结尾） | 模型广场 |
+| OpenRouter | `https://openrouter.ai/api/v1` | 模型页，如 `openai/gpt-4o-mini` |
+
+下面以 DeepSeek 为例，其他服务商的步骤类似。
+
+1. 打开 <https://platform.deepseek.com/>，注册并登录。
+2. 充值：在左侧菜单找到“充值”，按页面支持的付款方式充值。第一次建议只充最低金额，够写很多篇文章。
+3. 查看价格：打开 [模型与价格页](https://api-docs.deepseek.com/quick_start/pricing)，找到 `deepseek-flash` 这一列，记下两个数字：
+   - 每百万输入 token 的价格（选 “缓存未命中 / CACHE MISS” 那行，按高峰价 PEAK 记）；
+   - 每百万输出 token 的价格（按高峰价记）。
+
+   写作时英文页面的高峰价分别约为 0.3 和 1.2 美元。按高峰价记是为了让估算宁高勿低。中文页面可能显示人民币价格，用哪种货币都可以，但第 8 章的费用上限要用同一种货币。
+4. 创建 API Key：在左侧菜单找到 “API keys”，点“创建 API key”，名称填 `content-farm`，点创建。
+5. 页面会显示一串以 `sk-` 开头的密钥。立刻复制，保存到安全的地方（如密码管理器）。它只显示这一次。
+
+密钥就像银行卡密码：不要发到聊天群、不要截图、不要写进任何项目文件。泄露了就回到 API keys 页面删除它，再建一个新的。
+
+关于“思考模式”：DeepSeek 等一些模型默认会先“思考”再回答，思考内容也会占用输出长度。所以第 8 章建议把输出上限设得宽松一些（8000）。如果生成时出现文章被截断的错误，再调大。
 
 ### 4.3 Cloudflare（网站托管）
 
 1. 打开 <https://dash.cloudflare.com/sign-up>，用邮箱注册，完成邮箱验证。
 2. 不需要购买域名，也不需要添加网站。登录能看到控制台就行。
 
-检查点：三个账号都能登录；手里有一个 OpenRouter API Key 和两个模型价格数字。
+检查点：三个账号都能登录；手里有模型服务商的 base_url、api_key、model 和两个价格数字。
 
 ---
 
@@ -489,44 +511,92 @@ Settings → 左侧 Secrets and variables → Actions → Secrets 标签页 → 
 
 | Name | Secret |
 | --- | --- |
-| `MODEL_GATEWAY_API_KEY` | 粘贴 4.2 中复制的 OpenRouter API Key |
+| `MODEL_GATEWAY_API_KEY` | 粘贴 4.2 中复制的 api_key |
 
 点 Add secret。保存后页面只显示名字，不显示值，这是正常的。
 
 ### 8.3 添加配置变量（Variables）
 
-同一页面切换到 Variables 标签页，点 New repository variable，逐个添加下面 10 个变量（每添加一个点一次 Add variable）：
+同一页面切换到 Variables 标签页，点 New repository variable，逐个添加下面 11 个变量（每添加一个点一次 Add variable）。示例值以 DeepSeek 为例，用其他服务商时换成你在 4.2 拿到的值：
 
 | Name | Value（示例） | 说明 |
 | --- | --- | --- |
-| `MODEL_GATEWAY` | `openrouter` | 固定填这个 |
-| `MODEL_ID` | `openai/gpt-4o-mini` | 固定填这个（更换模型见 14.3） |
-| `BUDGET_INPUT_PRICE_PER_MTOK` | `0.15` | 4.2 记下的 Input 价格 |
-| `BUDGET_OUTPUT_PRICE_PER_MTOK` | `0.60` | 4.2 记下的 Output 价格 |
+| `MODEL_GATEWAY` | `openai_compatible` | 固定填这个（表示 OpenAI 兼容接口） |
+| `MODEL_BASE_URL` | `https://api.deepseek.com` | 4.2 中的 base_url |
+| `MODEL_ID` | `deepseek-flash` | 4.2 中的 model |
+| `BUDGET_INPUT_PRICE_PER_MTOK` | `0.3` | 4.2 记下的输入价格 |
+| `BUDGET_OUTPUT_PRICE_PER_MTOK` | `1.2` | 4.2 记下的输出价格 |
 | `BUDGET_MAX_INPUT_TOKENS` | `4000` | 输入 token 上限，用于估算费用 |
-| `BUDGET_MAX_OUTPUT_TOKENS` | `4000` | AI 最多输出多少 token |
-| `BUDGET_MAX_COST_PER_ARTICLE` | `0.01` | 单篇费用上限（美元） |
-| `BUDGET_MAX_COST_PER_RUN` | `0.02` | 单次运行费用上限（美元） |
+| `BUDGET_MAX_OUTPUT_TOKENS` | `8000` | AI 最多输出多少 token（含思考过程） |
+| `BUDGET_MAX_COST_PER_ARTICLE` | `0.02` | 单篇费用上限（与价格同一货币） |
+| `BUDGET_MAX_COST_PER_RUN` | `0.04` | 单次运行费用上限（与价格同一货币） |
 | `SITE_URL` | `https://<项目名>.pages.dev` | 7.1 中显示的网站地址，必须以 `https://` 开头 |
 | `CLOUDFLARE_PAGES_PROJECT` | `<项目名>` | 7.1 中创建的项目名 |
 
 填写数字时的注意事项：
 
-- 只写普通数字，如 `0.6`。不要写 `$`、空格、负数或 `1e-3` 这类写法。
+- 只写普通数字，如 `0.6`。不要写 `$`、`元`、空格、负数或 `1e-3` 这类写法。
 - 两个 token 上限只能是整数。
+- `MODEL_BASE_URL` 直接粘贴服务商给的地址，必须以 `https://` 开头，末尾有没有 `/` 都可以。服务商给的如果是以 `/chat/completions` 结尾的完整地址，也可以直接填。
 
 预算是怎么算的？每次调用 AI 之前，程序会先估算最坏情况下的费用：
 
 ```text
 预估费用 = (输入上限 × 输入单价 + 输出上限 × 输出单价) ÷ 1,000,000
-         = (4000 × 0.15 + 4000 × 0.60) ÷ 1,000,000
-         = 0.003 美元
+         = (4000 × 0.3 + 8000 × 1.2) ÷ 1,000,000
+         = 0.0108 美元
 ```
 
-- 预估费用超过单篇上限（0.01），直接停止，不调用 AI。
-- 网络出错时程序会自动重试 1 次，重试也要预留一份费用。所以单次上限（0.02）至少要是预估费用的 2 倍，才能保证重试有额度。
+- 预估费用超过单篇上限（0.02），直接停止，不调用 AI。
+- 网络出错时程序会自动重试 1 次，重试也要预留一份费用。所以单次上限（0.04）至少要是预估费用的 2 倍，才能保证重试有额度。
+- 如果你的价格是人民币（例如每百万 token 2 元和 8 元），费用上限也要按人民币填，例如单篇 `0.2`、单次 `0.4`，先用公式算一遍再填。
 
-`BUDGET_MAX_OUTPUT_TOKENS` 同时也是 AI 回答的最大长度。设得太小，文章会被截断，导致生成失败。4000 一般够写一篇中等长度的文章；想要更长的文章可以调大，同时相应调高两个费用上限。
+`BUDGET_MAX_OUTPUT_TOKENS` 同时也是 AI 回答的最大长度。设得太小，文章会被截断，导致生成失败。8000 一般够写一篇中等长度的文章并留出思考空间；想要更长的文章可以调大，同时按公式调高两个费用上限。
+
+### 8.5 在合规清单中登记模型地址
+
+为了安全，程序只会访问 `docs/compliance.md` 中登记过的地址和模型。只填 GitHub 变量还不够，这里要登记一次，而且登记的内容必须和 8.3 中填的完全一致，否则生成会在调用 AI 之前失败。
+
+现在还没有设置分支保护（第 10 章），可以直接在网页上修改 main：
+
+1. 在仓库文件列表中依次打开 `docs` → `compliance.md`，点右上角铅笔图标编辑。
+2. 修改文件开头 `---` 之间的 4 处（以 DeepSeek 为例）：
+
+   修改前：
+
+   ```yaml
+   gateway: openrouter
+   model_endpoint: https://openrouter.ai/api/v1/chat/completions
+   allowed_endpoints:
+     - https://openrouter.ai/api/v1/chat/completions
+   model: openai/gpt-4o-mini
+   ```
+
+   修改后：
+
+   ```yaml
+   gateway: openai_compatible
+   model_endpoint: https://api.deepseek.com/chat/completions
+   allowed_endpoints:
+     - https://api.deepseek.com/chat/completions
+   model: deepseek-flash
+   ```
+
+   规则：`model_endpoint` = 你的 base_url 末尾去掉 `/` 后加上 `/chat/completions`；`allowed_endpoints` 下写同一个地址；`model` 与 `MODEL_ID` 相同。例如硅基流动的 base_url 是 `https://api.siliconflow.cn/v1`，这里就写 `https://api.siliconflow.cn/v1/chat/completions`。
+
+3. 往下找到 “## 1. 模型网关与允许网络端点” 这一节，把其中的 3 行同步改掉，让说明文字和上面一致：
+
+   ```markdown
+   - 网关：`openai_compatible`（`litellm`、`openrouter`、`openai_compatible` 中恰好一个；`openai_compatible` 表示任意提供 OpenAI 兼容 Chat Completions 接口的服务商）。
+   - Allowed_Network_Endpoint（仅 HTTPS）：
+     - `https://api.deepseek.com/chat/completions`（模型调用端点）
+   - 指定模型标识：`deepseek-flash`
+   ```
+
+4. 不要改动文件中的其他内容，特别是“禁止”相关的列表，删掉任何一项都会导致生成失败。
+5. 点 Commit changes...，选择 `Commit directly to the main branch`，点 Commit changes。
+
+这次提交会自动触发一次网站部署，第 9 章会用到。
 
 ### 8.4 创建部署环境 production
 
@@ -547,8 +617,9 @@ Settings → 左侧 Environments → New environment：
 
 - [ ] Actions → General 中已取消勾选 “Allow GitHub Actions to create and approve pull requests”；
 - [ ] 仓库 Secret 有 1 个：`MODEL_GATEWAY_API_KEY`；
-- [ ] 仓库 Variable 有 10 个，名字与 8.3 表格完全一致；
-- [ ] Environments 中有 `production`，限制为 `main` 分支，并有 2 个 Secret。
+- [ ] 仓库 Variable 有 11 个，名字与 8.3 表格完全一致；
+- [ ] Environments 中有 `production`，限制为 `main` 分支，并有 2 个 Secret；
+- [ ] `docs/compliance.md` 中的地址和模型与 `MODEL_BASE_URL`、`MODEL_ID` 对应一致。
 
 ---
 
@@ -557,6 +628,8 @@ Settings → 左侧 Environments → New environment：
 部署工作流只在 `main` 分支收到新提交时运行。现在还没有设置分支保护，可以直接在 `main` 上做一次小修改来触发它。
 
 ### 9.1 触发部署
+
+8.5 中修改 `compliance.md` 的那次提交已经触发了部署，直接看 9.2 即可。如果那次部署因为配置问题失败了，修好配置后按下面的方法再触发一次：
 
 1. 打开仓库首页，点击文件列表中的 `README.md`。
 2. 点右上角的铅笔图标（Edit this file）。
@@ -703,7 +776,7 @@ tags: ["静态网站", "部署"]
 slug: "static-hosting-guide"
 draft: true
 ai_assisted: true
-model: "openai/gpt-4o-mini"
+model: "deepseek-flash"
 prompt_version: "1.0.0"
 sources: []
 ---
@@ -849,7 +922,7 @@ draft: false
 ### 12.6 怎么看花了多少钱
 
 - 每次生成运行的日志中会输出预估费用和调用次数：Actions → 某次运行 → `Generate and validate draft` 任务 → 展开 `Generate draft bundle` 步骤。
-- 实际扣费以 OpenRouter 的 <https://openrouter.ai/activity> 页面为准。
+- 实际扣费以模型服务商控制台的用量或账单页面为准（DeepSeek 在 <https://platform.deepseek.com/> 的用量信息中查看）。
 
 ---
 
@@ -960,14 +1033,24 @@ description: 为人工审阅生成一篇面向读者的博客文章草稿。
 
 `prompts/` 下只要有一个文件格式错误，所有生成都会失败，修改时要仔细检查。
 
-### 14.3 更换 AI 模型
+### 14.3 更换模型或服务商
 
-需要同时改两处，缺一不可：
+同一服务商换模型（例如从 `deepseek-flash` 换到 `deepseek-v4-pro`），改两处：
 
-1. 通过 PR 修改 `docs/compliance.md` 开头的 `model`，并同步修改下方正文第 1 节中的模型名称。
-2. 在 GitHub Variables 中修改 `MODEL_ID` 为相同的值，并按新模型价格更新两个单价变量。
+1. 通过 PR 修改 `docs/compliance.md` 开头的 `model`，并同步修改正文第 1 节中的模型名称。
+2. 在 GitHub Variables 中把 `MODEL_ID` 改为相同的值，并按新模型价格更新两个单价变量，按 8.3 的公式检查费用上限。
 
-如需改用 LiteLLM 或其他网关地址，还要修改 `docs/compliance.md` 中的 `gateway`、`model_endpoint` 和 `allowed_endpoints`，并更新 `MODEL_GATEWAY` 和密钥。`compliance.md` 中的禁止项只能增加，不能删除，否则生成会失败。
+换服务商（例如从 DeepSeek 换到硅基流动），改三处：
+
+1. 通过 PR 按 8.5 的方法修改 `docs/compliance.md` 中的 `model_endpoint`、`allowed_endpoints`、`model` 和正文第 1 节。
+2. 在 GitHub Variables 中修改 `MODEL_BASE_URL`、`MODEL_ID` 和两个单价变量。
+3. 在 GitHub Secrets 中更新 `MODEL_GATEWAY_API_KEY` 为新服务商的密钥（点 Secret 右侧铅笔图标，粘贴新值后保存）。
+
+先合并 PR，再改 Variables 和 Secret。两边不一致时，生成会在调用 AI 之前失败，不会产生费用。
+
+`compliance.md` 中的禁止项只能增加，不能删除，否则生成会失败。
+
+为什么要改两个地方？GitHub 变量谁有仓库设置权限就能改，而 `compliance.md` 的修改必须经过 PR 审阅、有历史记录。要求两边一致，意味着单改变量不能让程序把你的文章和密钥发到未经审阅的地址。
 
 ### 14.4 绑定自己的域名
 
@@ -1010,14 +1093,19 @@ description: 为人工审阅生成一篇面向读者的博客文章草稿。
 | 提到 `topic`、`audience`、`keywords`、`prompt_name`、`prompt_version` | 该输入为空、超长或格式不对，按 11.1 表格修改 |
 | `prompt not found: 名称@版本` | Prompt 名称或版本填错，或新版本还没合并到 main |
 | `invalid prompt file` 或 `duplicate prompt` | `prompts/` 下有格式错误或版本重复的文件，见 14.2 |
-| 列出 `MODEL_GATEWAY`、`MODEL_ID`、`MODEL_GATEWAY_API_KEY` 等名称 | 对应的 Secret 或 Variable 没添加、名字拼错，或与 `docs/compliance.md` 不一致。对照 8.2、8.3 逐个核对 |
+| `missing configuration:` 后列出 `MODEL_GATEWAY`、`MODEL_ID`、`MODEL_BASE_URL`、`MODEL_GATEWAY_API_KEY` 等名称 | 对应的 Secret 或 Variable 没添加，或名字拼错。对照 8.2、8.3 逐个核对 |
+| `invalid configuration: MODEL_BASE_URL` | 地址格式不对：必须以 `https://` 开头，不能含空格、`?` 或 `#` |
+| `configuration does not match docs/compliance.md` 后列出 `MODEL_GATEWAY`、`MODEL_ID` 或 `MODEL_BASE_URL` | GitHub 变量与 `compliance.md` 登记的不一致。`MODEL_BASE_URL` 加上 `/chat/completions` 后必须与 `model_endpoint` 一字不差，按 8.5 核对 |
+| `invalid Compliance_Checklist docs/compliance.md` | 修改 `compliance.md` 时格式出错或删掉了禁止项。对照 8.5 的示例检查缩进、`-` 和冒号 |
 | 列出 `BUDGET_...` 名称 | 预算变量缺失或格式不对（写了 `$`、空格或非数字） |
 | 提到 `BUDGET_MAX_COST_PER_ARTICLE` 或 `BUDGET_MAX_COST_PER_RUN` 超限 | 预估费用超过上限。调低 token 上限或调高费用上限，按 8.3 公式重算 |
-| HTTP 401 | OpenRouter API Key 错误或已删除，重新创建并更新 Secret |
-| HTTP 402 | OpenRouter 余额不足或超过 Key 的额度上限，去充值或调高 Key 的 Credit limit |
-| HTTP 404 或提示没有可用的服务商 | 模型名写错，或 OpenRouter 账号的隐私设置屏蔽了该模型的服务商，到 <https://openrouter.ai/settings/privacy> 检查 |
+| HTTP 400 | 服务商不接受请求，常见原因是模型名写错，或 `BUDGET_MAX_OUTPUT_TOKENS` 超过了该模型允许的最大输出。核对模型名，并查阅服务商文档中的输出上限 |
+| HTTP 401 | api_key 错误、已删除，或与 base_url 不是同一家服务商。重新创建并更新 Secret |
+| HTTP 402 | 账户余额不足，去服务商控制台充值 |
+| HTTP 403 | 账号没有该模型的使用权限（如未实名认证或未开通），到服务商控制台处理 |
+| HTTP 404 | base_url 或模型名写错。检查 base_url 是否缺少 `/v1` 等路径（以服务商文档为准），修改后 8.5 的登记也要一起改 |
 | HTTP 429、5xx 或超时，重试后仍失败 | 服务暂时繁忙，程序已自动重试 1 次。过几分钟再运行 |
-| 文章格式校验错误（提到 `body`、`slug`、`title` 等） | AI 输出不合格，常见原因是 `BUDGET_MAX_OUTPUT_TOKENS` 太小导致截断。调大后重新运行 |
+| 文章格式校验错误（提到 `result`、`body`、`slug`、`title` 等），或 `parse_error` | AI 输出不合格。常见原因是 `BUDGET_MAX_OUTPUT_TOKENS` 太小，思考过程占满了输出长度导致截断。调大（如 16000）并按公式调高费用上限后重新运行；也可以换一个不带思考模式的模型 |
 | `Generated draft is identical to the Default_Branch` | 生成的文章与 main 上已有文件完全相同，无需审阅 |
 | 运行一直显示排队 | 前一个生成任务还没结束，等待即可 |
 
@@ -1074,7 +1162,7 @@ Cloudflare 控制台的项目页面也能回滚到之前的部署，但这样线
 
 ## 16. 安全与合规须知
 
-- 密钥只存放在 GitHub Secrets 中。不要写进代码、文章、PR 描述、聊天记录或截图。怀疑泄露时立即到 OpenRouter 或 Cloudflare 删除旧密钥，创建新密钥并更新 GitHub。
+- 密钥只存放在 GitHub Secrets 中。不要写进代码、文章、PR 描述、聊天记录或截图。怀疑泄露时立即到模型服务商或 Cloudflare 删除旧密钥，创建新密钥并更新 GitHub。
 - 不要关闭分支保护，不要把任何人或应用加入 Bypass list，不要开启 “Allow GitHub Actions to create and approve pull requests”。
 - 所有 AI 生成的内容都必须经过五项人工审阅才能发布，不要为了省事批量跳过审阅。
 - 本项目明确禁止：规避 AI 检测或用 “humanizer” 改写、绕过平台限流、多账号、分散 IP、违反第三方服务条款的自动化操作、未经审阅的大规模分发、自动发布到其他平台。
@@ -1091,15 +1179,16 @@ Cloudflare 控制台的项目页面也能回滚到之前的部署，但这样线
 
 | 名称 | 类型 | 在哪里设置 | 值从哪里来 |
 | --- | --- | --- | --- |
-| `MODEL_GATEWAY_API_KEY` | 仓库 Secret | Settings → Secrets and variables → Actions → Secrets | OpenRouter Keys 页面（4.2） |
-| `MODEL_GATEWAY` | 仓库 Variable | 同上 → Variables | 固定 `openrouter` |
-| `MODEL_ID` | 仓库 Variable | 同上 | 与 `docs/compliance.md` 的 `model` 一致 |
-| `BUDGET_INPUT_PRICE_PER_MTOK` | 仓库 Variable | 同上 | OpenRouter 模型页 Input 价格 |
-| `BUDGET_OUTPUT_PRICE_PER_MTOK` | 仓库 Variable | 同上 | OpenRouter 模型页 Output 价格 |
+| `MODEL_GATEWAY_API_KEY` | 仓库 Secret | Settings → Secrets and variables → Actions → Secrets | 模型服务商的 api_key（4.2） |
+| `MODEL_GATEWAY` | 仓库 Variable | 同上 → Variables | 固定 `openai_compatible`，与 `docs/compliance.md` 的 `gateway` 一致 |
+| `MODEL_BASE_URL` | 仓库 Variable | 同上 | 服务商的 base_url；加上 `/chat/completions` 后与 `compliance.md` 的 `model_endpoint` 一致 |
+| `MODEL_ID` | 仓库 Variable | 同上 | 服务商的 model，与 `docs/compliance.md` 的 `model` 一致 |
+| `BUDGET_INPUT_PRICE_PER_MTOK` | 仓库 Variable | 同上 | 服务商价格页的输入价格 |
+| `BUDGET_OUTPUT_PRICE_PER_MTOK` | 仓库 Variable | 同上 | 服务商价格页的输出价格 |
 | `BUDGET_MAX_INPUT_TOKENS` | 仓库 Variable | 同上 | 建议 `4000` |
-| `BUDGET_MAX_OUTPUT_TOKENS` | 仓库 Variable | 同上 | 建议 `4000` |
-| `BUDGET_MAX_COST_PER_ARTICLE` | 仓库 Variable | 同上 | 建议 `0.01` |
-| `BUDGET_MAX_COST_PER_RUN` | 仓库 Variable | 同上 | 建议 `0.02`，至少为预估费用的 2 倍 |
+| `BUDGET_MAX_OUTPUT_TOKENS` | 仓库 Variable | 同上 | 建议 `8000` |
+| `BUDGET_MAX_COST_PER_ARTICLE` | 仓库 Variable | 同上 | 按 8.3 公式计算，DeepSeek 美元价格下建议 `0.02` |
+| `BUDGET_MAX_COST_PER_RUN` | 仓库 Variable | 同上 | 至少为预估费用的 2 倍，DeepSeek 美元价格下建议 `0.04` |
 | `SITE_URL` | 仓库 Variable | 同上 | `https://<项目名>.pages.dev` 或自有域名 |
 | `CLOUDFLARE_PAGES_PROJECT` | 仓库 Variable | 同上 | 7.1 创建的项目名 |
 | `CLOUDFLARE_API_TOKEN` | production 环境 Secret | Settings → Environments → production | Cloudflare API Tokens（7.3） |

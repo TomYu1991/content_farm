@@ -1,10 +1,11 @@
 """Compliance-bound single-gateway Model_Gateway adapter (Requirement 3.11, 6, 9.3–9.6).
 
-The adapter talks to exactly one gateway (LiteLLM *or* OpenRouter, both via
-the OpenAI-compatible chat-completions API) at the Compliance_Checklist's
-``model_endpoint`` with the designated model. Before any network access it:
+The adapter talks to exactly one gateway (LiteLLM, OpenRouter *or* any other
+provider exposing the OpenAI-compatible chat-completions API) at the
+Compliance_Checklist's ``model_endpoint`` with the designated model. Before
+any network access it:
 
-1. checks the runtime gateway/model configuration against the checklist,
+1. checks the runtime gateway/model/base-URL configuration against the checklist,
 2. requires ``model_endpoint`` to be an exact Allowed_Network_Endpoint, and
 3. reserves the call's estimated cost with the Budget_Controller.
 

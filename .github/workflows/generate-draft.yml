@@ -26,6 +26,10 @@
 # Configuration (Settings > Secrets and variables > Actions):
 #   secret   MODEL_GATEWAY_API_KEY          single gateway credential
 #   variable MODEL_GATEWAY, MODEL_ID        must match docs/compliance.md
+#   variable MODEL_BASE_URL                 provider base URL; required for
+#                                           MODEL_GATEWAY=openai_compatible and
+#                                           <base>/chat/completions must equal
+#                                           model_endpoint in docs/compliance.md
 #   variable BUDGET_INPUT_PRICE_PER_MTOK, BUDGET_OUTPUT_PRICE_PER_MTOK,
 #            BUDGET_MAX_INPUT_TOKENS, BUDGET_MAX_OUTPUT_TOKENS,
 #            BUDGET_MAX_COST_PER_ARTICLE, BUDGET_MAX_COST_PER_RUN
@@ -112,6 +116,7 @@ jobs:
         env:
           MODEL_GATEWAY: ${{ vars.MODEL_GATEWAY }}
           MODEL_ID: ${{ vars.MODEL_ID }}
+          MODEL_BASE_URL: ${{ vars.MODEL_BASE_URL }}
           MODEL_GATEWAY_API_KEY: ${{ secrets.MODEL_GATEWAY_API_KEY }}
           BUDGET_INPUT_PRICE_PER_MTOK: ${{ vars.BUDGET_INPUT_PRICE_PER_MTOK }}
           BUDGET_OUTPUT_PRICE_PER_MTOK: ${{ vars.BUDGET_OUTPUT_PRICE_PER_MTOK }}

@@ -4,7 +4,7 @@ The checklist is a Markdown document whose YAML front-matter (delimited by
 ``---`` lines) is the single machine-readable policy; the Markdown body is the
 human-readable explanation. The policy binds:
 
-* ``gateway``: exactly one of ``litellm`` / ``openrouter``;
+* ``gateway``: exactly one of ``litellm`` / ``openrouter`` / ``openai_compatible``;
 * ``allowed_endpoints``: the HTTPS Allowed_Network_Endpoint list and
   ``model_endpoint``: the one entry the Model_Gateway adapter may call;
 * ``model``: the single designated model identifier;
@@ -32,7 +32,7 @@ from urllib.parse import urlsplit
 import yaml
 
 from .errors import ComplianceError, FieldIssue
-from .gateway_config import GATEWAY_ENV, MODEL_ENV, SUPPORTED_GATEWAYS, GatewayConfig
+from .gateway_config import BASE_URL_ENV, GATEWAY_ENV, MODEL_ENV, SUPPORTED_GATEWAYS, GatewayConfig
 
 DEFAULT_POLICY_PATH = Path("docs") / "compliance.md"
 FRONT_MATTER_DELIMITER = "---"
@@ -149,12 +149,18 @@ def require_designated_model(policy: CompliancePolicy, model: object) -> str:
 
 
 def check_gateway_config(policy: CompliancePolicy, config: GatewayConfig) -> None:
-    """Ensure the runtime gateway and model match the checklist (names only in errors)."""
+    """Ensure the runtime gateway, model and base URL match the checklist (names only in errors).
+
+    A configured ``MODEL_BASE_URL`` must resolve to exactly the checklist's
+    ``model_endpoint``; the URL itself is never echoed.
+    """
     mismatched = []
     if config.gateway != policy.gateway:
         mismatched.append(GATEWAY_ENV)
     if config.model != policy.model:
         mismatched.append(MODEL_ENV)
+    if config.endpoint is not None and config.endpoint != policy.model_endpoint:
+        mismatched.append(BASE_URL_ENV)
     if mismatched:
         raise ComplianceError(
             f"configuration does not match {policy.path}",

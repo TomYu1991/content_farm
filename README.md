@@ -3,7 +3,7 @@
 最低经济投入、人工审阅后发布的静态内容博客 MVP。
 
 - 文章内容的唯一手写来源是 `src/content/articles/*.md`（Markdown + YAML front-matter）。HTML 只由 Astro 在构建时生成（`dist/`），仓库中没有第二份手写 HTML。
-- 草稿由 GitHub Actions 手动触发、Python 3.11+ 脚本通过**恰好一个**网关（LiteLLM 或 OpenRouter）调用**恰好一个**模型生成，只写入非默认分支 `draft/<sha256>`。
+- 草稿由 GitHub Actions 手动触发、Python 3.11+ 脚本通过**恰好一个**网关（LiteLLM、OpenRouter，或任意 OpenAI 兼容接口，如 DeepSeek）调用**恰好一个**模型生成，只写入非默认分支 `draft/<sha256>`。
 - 发布的唯一路径：编辑人员在 Pull Request 中完成五项审阅、手动将 `draft: true` 改为 `draft: false`、人工合并到默认分支，随后由部署工作流构建并发布静态站点。
 - 不使用数据库、Redis、队列、VPS、Docker、Ollama 或任何动态运行时服务。基础设施月固定成本目标为 0（不含域名与按量 LLM API 费用），这只是目标，不是对任何服务价格的承诺。
 
@@ -87,8 +87,9 @@ python -m pip install --no-deps -e .
 | 名称 | 类型 | 说明 |
 | --- | --- | --- |
 | `MODEL_GATEWAY_API_KEY` | secret | 唯一网关凭据，只注入 `generate` job 的 “Generate draft bundle” 一个步骤 |
-| `MODEL_GATEWAY` | variable | `litellm` 或 `openrouter`，只能填一个 |
+| `MODEL_GATEWAY` | variable | `litellm`、`openrouter` 或 `openai_compatible`，只能填一个 |
 | `MODEL_ID` | variable | 单一模型标识 |
+| `MODEL_BASE_URL` | variable | 服务商 base URL（如 `https://api.deepseek.com`）；`openai_compatible` 必填，其他网关可选。程序在其后拼接 `/chat/completions`（已包含时不重复） |
 | `BUDGET_INPUT_PRICE_PER_MTOK` | variable | 输入单价（每百万 token） |
 | `BUDGET_OUTPUT_PRICE_PER_MTOK` | variable | 输出单价（每百万 token） |
 | `BUDGET_MAX_INPUT_TOKENS` | variable | 最大输入 token |
@@ -96,7 +97,15 @@ python -m pip install --no-deps -e .
 | `BUDGET_MAX_COST_PER_ARTICLE` | variable | 单篇成本上限 |
 | `BUDGET_MAX_COST_PER_RUN` | variable | 单次工作流成本上限 |
 
-`MODEL_GATEWAY`、`MODEL_ID` 必须与 `docs/compliance.md` front-matter 中的 `gateway`、`model` 一致，请求只发往其中列出的 `model_endpoint`（须在 `allowed_endpoints` 内，精确匹配、不跟随重定向）。当前占位默认值为 `openrouter` / `openai/gpt-4o-mini`；更换网关或模型时，通过 PR 同时修改清单与变量。
+`MODEL_GATEWAY`、`MODEL_ID` 必须与 `docs/compliance.md` front-matter 中的 `gateway`、`model` 一致，请求只发往其中列出的 `model_endpoint`（须在 `allowed_endpoints` 内，精确匹配、不跟随重定向）。配置了 `MODEL_BASE_URL` 时，`<MODEL_BASE_URL>/chat/completions` 也必须与 `model_endpoint` 完全一致，因此单改变量无法把请求发往未登记的地址。当前占位默认值为 `openrouter` / `openai/gpt-4o-mini`；更换网关或模型时，通过 PR 同时修改清单与变量。
+
+使用 OpenAI 兼容服务商（以 DeepSeek 为例）：
+
+| 位置 | 设置 |
+| --- | --- |
+| `docs/compliance.md` front-matter | `gateway: openai_compatible`、`model: deepseek-flash`、`model_endpoint` 与 `allowed_endpoints` 均为 `https://api.deepseek.com/chat/completions`，并同步正文第 1 节 |
+| Variables | `MODEL_GATEWAY=openai_compatible`、`MODEL_ID=deepseek-flash`、`MODEL_BASE_URL=https://api.deepseek.com` |
+| Secret | `MODEL_GATEWAY_API_KEY` = 服务商 API Key |
 
 任一网关、模型、凭据或预算配置缺失或无效，都会在模型调用前失败，只输出配置名称。
 

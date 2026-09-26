@@ -34,7 +34,7 @@
 flowchart LR
   O[运营人员] -->|workflow_dispatch\ntopic/audience/keywords/prompt| GW[GitHub Actions\n生成工作流]
   GW --> V[输入、Prompt、合规与预算校验]
-  V -->|仅一个允许 HTTPS 端点| MG[LiteLLM 或 OpenRouter\n单一已配置模型]
+  V -->|仅一个允许 HTTPS 端点| MG[LiteLLM、OpenRouter 或 OpenAI 兼容\n单一已配置模型]
   MG --> G[Python 3.11+\n草稿组装与 Article Schema 校验]
   G -->|仅成功且合法| B[draft/<sha256> 分支\nMarkdown Content_File]
   B --> PR[审阅 Pull Request]
@@ -75,7 +75,7 @@ flowchart LR
 | 输入验证器 | 验证 dispatch 必填、Unicode 长度、`prompt_name` 与 semver | 五个工作流输入 | 规范化的有效请求；字段级失败 |
 | Compliance Policy | 读取 `docs/compliance.md`，绑定端点、模型、调用次数与禁止项 | 配置、请求目标 | 仅允许的请求；拒绝未列白名单项 |
 | Budget_Controller | 调用前估算成本，比较每篇与每次运行上限 | 单价、token 上限、已预留成本 | 允许/阻断；固定六位小数估算值 |
-| Model_Gateway Adapter | 以唯一已选 LiteLLM 或 OpenRouter 端点调用唯一模型 | 合规请求、秘密凭据 | 原始模型结果或分类错误 |
+| Model_Gateway Adapter | 以唯一已选 LiteLLM、OpenRouter 或 OpenAI 兼容 端点调用唯一模型 | 合规请求、秘密凭据 | 原始模型结果或分类错误 |
 | Draft Assembler / Schema Validator | 转义原始 HTML、填充固定字段、验证内容/路径/编码 | 模型结果、配置、请求 | 无 BOM UTF-8/LF 的合法草稿，或零 Git 变更的失败 |
 | Git_Change_Manager | 计算稳定键、选择草稿分支和文件路径、创建/更新可审阅结果 | 合法草稿、规范化请求、模型 | 非默认分支 PR 或清晰创建说明 |
 | Human_Editorial_Gate | 在 PR 中保存五项审核记录并控制发布状态 | Draft_Article、编辑确认 | 允许 `draft: false` 的人工合并变更 |
@@ -87,7 +87,7 @@ flowchart LR
 
 **Prompt 解析接口**：以 `(name, version)` 返回唯一文件的 YAML front-matter 与 Markdown 正文。文件不存在、缺 `name`/`version`、格式非法或出现相同键的两个文件时失败并给出路径或选定标识。
 
-**GatewayRequest**：只包含已验证 Prompt、运营输入、配置模型标识和允许端点。运行开始时将网关枚举解析为 `litellm` 或 `openrouter` 中一个值，同时解析一个非空模型标识；两者均未配置、均配置或值不在合规清单时均失败。适配器不会接收可任意指定的 URL。
+**GatewayRequest**：只包含已验证 Prompt、运营输入、配置模型标识和允许端点。运行开始时将网关枚举解析为 `litellm`、`openrouter` 或 `openai_compatible` 中一个值，同时解析一个非空模型标识；两者均未配置、均配置或值不在合规清单时均失败。`openai_compatible` 还需 `MODEL_BASE_URL`（其他网关可选），其拼接 `/chat/completions` 后必须与合规清单的 `model_endpoint` 完全一致；适配器只调用清单中的端点，不会接收可任意指定的 URL。
 
 **GitChangeResult**：成功时必须指向 `draft/<stable-key>` 非默认分支，并返回 PR URL 或不依赖特定 GitHub API 的清晰 PR 创建说明。不能产生可审阅非默认分支结果即为整个工作流失败。
 
@@ -166,7 +166,7 @@ flowchart LR
 | 站点 | `Site_URL_Setting` | 绝对 HTTPS 根 URL；用于 canonical 与 robots sitemap 指令 |
 | 内容 | 内容根目录、正文最大字符数 | 仅允许文章根下安全 Markdown 路径 |
 | Prompt | `prompts/*.md` 的 `name`、语义化 `version`、正文 | `(name, version)` 必须唯一 |
-| 网关 | 网关枚举、唯一模型标识、允许端点 | LiteLLM 或 OpenRouter 二选一；端点和模型必须在清单中 |
+| 网关 | 网关枚举、唯一模型标识、base URL、允许端点 | LiteLLM、OpenRouter、OpenAI 兼容三选一；端点、base URL 和模型必须与清单一致 |
 | 预算 | 输入/输出每百万 token 单价、最大输入/输出 token、单篇/单次上限 | 任一缺失即调用前失败 |
 | 合规 | 允许端点、模型、调用上限、审阅要求、禁止依赖/凭据/能力 | 存于 `docs/compliance.md`，可审查、可版本化 |
 

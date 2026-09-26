@@ -4,7 +4,7 @@
 
 本文档定义 `content-pipeline-skeleton` 的最低经济投入静态内容博客 MVP。MVP 以 Git 仓库中的 Markdown 文件及其 YAML front-matter 作为文章内容的唯一手写来源；Astro 在构建时将 Markdown 编译为 HTML，HTML 仅为构建产物，不保存第二份手写 HTML。
 
-MVP 使用 Astro 构建静态站点，并可部署至已配置的静态托管目标。GitHub Actions 仅由 `workflow_dispatch` 手动触发；Python 3.11+ 脚本通过单一且可配置的 LiteLLM 或 OpenRouter API 网关生成草稿。生成结果仅可成为非默认分支上的可审阅变更；人工审阅、将 `draft` 改为 `false` 并合并 Pull Request 是唯一发布路径。
+MVP 使用 Astro 构建静态站点，并可部署至已配置的静态托管目标。GitHub Actions 仅由 `workflow_dispatch` 手动触发；Python 3.11+ 脚本通过单一且可配置的 LiteLLM、OpenRouter 或 OpenAI 兼容 API 网关生成草稿。生成结果仅可成为非默认分支上的可审阅变更；人工审阅、将 `draft` 改为 `false` 并合并 Pull Request 是唯一发布路径。
 
 MVP 的基础设施月固定成本目标为 0，不含域名费用和按量计费的 LLM API 费用。该目标不构成对 Cloudflare、GitHub 或任何商业服务价格的承诺。MVP 不要求 grounding；每个 Content_File 仍必须包含可为空的 `sources` 数组。本文档聚焦内容生产、审阅与静态发布闭环，不引入数据库、队列、服务器或动态运行时服务。
 
@@ -26,7 +26,7 @@ MVP 的基础设施月固定成本目标为 0，不含域名费用和按量计�
 - **Site_URL_Setting**：静态站点配置中的绝对 HTTPS 站点根 URL。
 - **Prompt_Store**：读取 `prompts/*.md` 中版本化 Prompt 的组件。
 - **Prompt_Version**：Prompt 文件 YAML front-matter 中匹配 `^[0-9]+\.[0-9]+\.[0-9]+$` 的 `version` 值。
-- **Model_Gateway**：通过 LiteLLM 或 OpenRouter 访问单一已配置模型的接口。
+- **Model_Gateway**：通过 LiteLLM、OpenRouter 或 任意 OpenAI 兼容接口（由 base URL 指定，且须登记在 Compliance_Checklist 中）访问单一已配置模型的接口。
 - **Generation_Workflow**：由 GitHub Actions 执行、接收人工输入并调用 Python 生成脚本的工作流。
 - **Budget_Controller**：在模型调用前按配置估算并比较单篇与单次工作流成本上限的组件。
 - **Git_Change_Manager**：在非 Default_Branch 创建或更新可供人工审阅的内容变更的组件。
@@ -88,7 +88,7 @@ MVP 的基础设施月固定成本目标为 0，不含域名费用和按量计�
 8. IF 被选定的 Prompt 缺少 `name` 或 `version`、格式无效或不存在，THEN THE Prompt_Store SHALL 以失败状态结束并输出 Prompt 路径或所选标识。
 9. IF 两个 Prompt 文件具有相同的 `name` 和 Prompt_Version，THEN THE Prompt_Store SHALL 以失败状态结束并输出冲突文件路径。
 10. IF Model_Gateway 缺少单一模型标识、网关配置或访问凭据，THEN THE Generation_Workflow SHALL 在模型调用前以失败状态结束并输出缺失配置名称。
-11. WHEN Generation_Workflow 调用 Model_Gateway，THE Generation_Workflow SHALL 使用 Python 3.11 或更高版本的脚本通过 LiteLLM 或 OpenRouter 中恰好一个已配置的 API 网关访问单一已配置模型。
+11. WHEN Generation_Workflow 调用 Model_Gateway，THE Generation_Workflow SHALL 使用 Python 3.11 或更高版本的脚本通过 LiteLLM、OpenRouter 或 OpenAI 兼容接口中恰好一个已配置的 API 网关访问单一已配置模型。
 12. WHILE MVP 未启用定时生成，THE Generation_Workflow SHALL 仅接受 `workflow_dispatch` 触发。
 13. WHEN Generation_Workflow 输出日志，THE Generation_Workflow SHALL 排除 API 密钥及其完整值。
 
@@ -222,4 +222,4 @@ MVP 的基础设施月固定成本目标为 0，不含域名费用和按量计�
 | P6 | 对任意配置成本和错误序列，缺失或超预算调用在访问 Model_Gateway 前被拒绝；仅 Retryable_Network_Error 可额外调用一次，带 `Retry-After` 的 HTTP 429 优先使用该等待时间，任意运行最多两次模型调用。 | 属性测试：预算、重试状态机与边界 | 6.1–6.10、9.6 |
 | P7 | 对任意生成和审阅事件序列，工作流仅访问白名单端点和指定模型，不直接写入 Default_Branch、不合并或批准 Pull Request，且只有保留五项审核记录并将 `draft` 设为 `false` 的文章可进入发布路径。 | 属性测试：权限、合规与发布闸门不变量 | 5.9、5.10、7.1–7.6、9.2–9.7 |
 
-以下内容使用集成测试或人工配置审查：Default_Branch 合并后静态托管目标是否发布、生产构建失败是否保留既有部署、GitHub Actions 是否仅允许 `workflow_dispatch` 触发、Workflow_Token 是否符合最小权限、Compliance_Checklist 是否列出实际允许端点，以及 Model_Gateway 是否配置为 LiteLLM 或 OpenRouter 中的单一网关与指定模型。
+以下内容使用集成测试或人工配置审查：Default_Branch 合并后静态托管目标是否发布、生产构建失败是否保留既有部署、GitHub Actions 是否仅允许 `workflow_dispatch` 触发、Workflow_Token 是否符合最小权限、Compliance_Checklist 是否列出实际允许端点，以及 Model_Gateway 是否配置为 LiteLLM、OpenRouter 或 OpenAI 兼容接口中的单一网关与指定模型。

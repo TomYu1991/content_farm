@@ -36,7 +36,7 @@ from content_pipeline.errors import (
     FieldIssue,
     ModelCallError,
 )
-from content_pipeline.gateway_config import CREDENTIAL_ENV, GATEWAY_ENV, MODEL_ENV
+from content_pipeline.gateway_config import BASE_URL_ENV, CREDENTIAL_ENV, GATEWAY_ENV, MODEL_ENV
 from content_pipeline.model_gateway import create_model_gateway
 from content_pipeline.retry import DEFAULT_RETRY_DELAY_SECONDS
 
@@ -292,3 +292,45 @@ def test_invalid_messages_are_rejected_before_any_call() -> None:
     with pytest.raises(ValueError):
         gateway.generate([])
     assert recorder.requests == [] and gateway.calls_made == 0
+
+
+# --- openai_compatible gateway configured with MODEL_BASE_URL ---------------
+
+COMPAT_ENDPOINT = "https://api.provider.example/v1/chat/completions"
+COMPAT_POLICY = replace(
+    POLICY,
+    gateway="openai_compatible",
+    model_endpoint=COMPAT_ENDPOINT,
+    allowed_endpoints=(COMPAT_ENDPOINT,),
+)
+COMPAT_ENV = {**ENV, GATEWAY_ENV: "openai_compatible", BASE_URL_ENV: "https://api.provider.example/v1/"}
+
+
+def test_openai_compatible_gateway_calls_base_url_chat_completions() -> None:
+    recorder = Recorder(_ok("hello"))
+    with _gateway(recorder, env=COMPAT_ENV, policy=COMPAT_POLICY) as gateway:
+        result = gateway.generate(MESSAGES)
+    assert (result.value, result.calls_made, gateway.gateway) == ("hello", 1, "openai_compatible")
+    [request] = recorder.requests
+    assert request.method == "POST" and str(request.url) == COMPAT_ENDPOINT
+    assert request.headers["Authorization"] == f"Bearer {SECRET}"
+
+
+def test_base_url_not_matching_checklist_makes_zero_calls() -> None:
+    recorder = Recorder(_ok())
+    env = {**COMPAT_ENV, BASE_URL_ENV: "https://attacker.example/v1"}
+    with pytest.raises(ComplianceError) as exc:
+        _gateway(recorder, env=env, policy=COMPAT_POLICY)
+    assert exc.value.fields == (BASE_URL_ENV,)
+    assert "attacker.example" not in str(exc.value)
+    assert recorder.requests == []
+    _assert_no_secret(exc.value)
+
+
+def test_openai_compatible_without_base_url_makes_zero_calls() -> None:
+    recorder = Recorder(_ok())
+    env = {k: v for k, v in COMPAT_ENV.items() if k != BASE_URL_ENV}
+    with pytest.raises(ConfigError) as exc:
+        _gateway(recorder, env=env, policy=COMPAT_POLICY)
+    assert exc.value.missing == (BASE_URL_ENV,)
+    assert recorder.requests == []

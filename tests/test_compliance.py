@@ -22,7 +22,14 @@ from content_pipeline.compliance import (
     validate_policy,
 )
 from content_pipeline.errors import ComplianceError
-from content_pipeline.gateway_config import CREDENTIAL_ENV, GATEWAY_ENV, MODEL_ENV, resolve_gateway_config
+from content_pipeline.gateway_config import (
+    BASE_URL_ENV,
+    CREDENTIAL_ENV,
+    GATEWAY_ENV,
+    MODEL_ENV,
+    SUPPORTED_GATEWAYS,
+    resolve_gateway_config,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 ENDPOINT = "https://gateway.example.com/v1/chat/completions"
@@ -66,7 +73,7 @@ def test_repository_checklist_loads_and_body_lists_policy_values() -> None:
     path = REPO_ROOT / DEFAULT_POLICY_PATH
     policy = load_policy(path, display_path="docs/compliance.md")
 
-    assert policy.gateway in {"litellm", "openrouter"}
+    assert policy.gateway in SUPPORTED_GATEWAYS
     assert policy.max_model_calls_per_run == 2
     assert policy.review_items == REQUIRED_REVIEW_ITEMS
     assert policy.model_endpoint in policy.allowed_endpoints
@@ -237,3 +244,45 @@ def test_gateway_config_must_match_policy_without_leaking_secret() -> None:
         policy.check_gateway_config(mismatch)
     assert exc.value.fields == (GATEWAY_ENV, MODEL_ENV)
     assert SECRET not in str(exc.value)
+
+
+def test_openai_compatible_gateway_is_a_valid_policy_gateway() -> None:
+    policy = validate_policy(_meta(gateway="openai_compatible"))
+    assert policy.gateway == "openai_compatible"
+
+
+@pytest.mark.parametrize(
+    "base_url",
+    [
+        "https://gateway.example.com/v1",
+        "https://gateway.example.com/v1/",
+        "https://gateway.example.com/v1/chat/completions",
+    ],
+)
+def test_base_url_resolving_to_model_endpoint_is_accepted(base_url) -> None:
+    policy = validate_policy(_meta(gateway="openai_compatible"))
+    env = {
+        GATEWAY_ENV: "openai_compatible",
+        MODEL_ENV: "vendor/model-a",
+        CREDENTIAL_ENV: SECRET,
+        BASE_URL_ENV: base_url,
+    }
+    policy.check_gateway_config(resolve_gateway_config(env))
+
+
+@pytest.mark.parametrize(
+    "base_url",
+    ["https://other.example.com/v1", "https://gateway.example.com/v2", "https://gateway.example.com"],
+)
+def test_base_url_not_matching_model_endpoint_is_rejected_without_echo(base_url) -> None:
+    policy = validate_policy(_meta(gateway="openai_compatible"))
+    env = {
+        GATEWAY_ENV: "openai_compatible",
+        MODEL_ENV: "vendor/model-a",
+        CREDENTIAL_ENV: SECRET,
+        BASE_URL_ENV: base_url,
+    }
+    with pytest.raises(ComplianceError) as exc:
+        policy.check_gateway_config(resolve_gateway_config(env))
+    assert exc.value.fields == (BASE_URL_ENV,)
+    assert base_url not in str(exc.value) and SECRET not in str(exc.value)
