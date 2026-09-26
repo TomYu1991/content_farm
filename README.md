@@ -23,7 +23,7 @@
 
 ## 本地构建与测试
 
-需要 Node.js >= 22.12.0 与 Python >= 3.11。
+需要 Node.js >= 22.19.0（CI 使用 24.12.0）与 Python >= 3.11。
 
 ```powershell
 # Node / Astro（锁定依赖）

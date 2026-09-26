@@ -121,7 +121,7 @@ GitHub 不允许你批准自己创建的 PR。本项目的合规清单要求“�
 
 ## 3. 安装软件
 
-需要安装 3 个软件：Git、Node.js（22.12 或更高版本）、Python（3.11 或更高版本）。
+需要安装 3 个软件：Git、Node.js（22.19 或更高版本，推荐 24 LTS）、Python（3.11 或更高版本）。
 
 ### 3.1 打开 PowerShell
 
@@ -169,7 +169,7 @@ python --version
 | 命令 | 正常结果示例 | 要求 |
 | --- | --- | --- |
 | `git --version` | `git version 2.xx.x.windows.1` | 有版本号即可 |
-| `node -v` | `v24.12.0` | 不低于 `v22.12.0` |
+| `node -v` | `v24.12.0` | 不低于 `v22.19.0` |
 | `npm -v` | `11.x.x` | 有版本号即可 |
 | `python --version` | `Python 3.12.x` | 不低于 3.11 |
 
@@ -1145,7 +1145,7 @@ description: 为人工审阅生成一篇面向读者的博客文章草稿。
 | 现象 | 解决 |
 | --- | --- |
 | 命令提示“无法识别” | 安装后没重开 PowerShell，或安装时没加入 PATH。重开窗口，仍不行就重新安装（Python 注意勾选 `Add python.exe to PATH`） |
-| `npm ci` 报 `Unsupported engine` | Node.js 版本低于 22.12，重新安装 LTS 版本 |
+| `npm ci` 报 `Unsupported engine` 或 `EBADENGINE` | Node.js 版本低于 22.19，重新安装 LTS 版本 |
 | 激活 `.venv` 时提示禁止运行脚本 | 执行 6.1 中的 `Set-ExecutionPolicy` 命令 |
 | 运行 Python 命令提示 `No module named ...` | 没有激活 `.venv`，先执行 `.\.venv\Scripts\Activate.ps1` |
 | `git push` 被拒绝，提示 `protected branch` | main 已受保护，这是正常的。新建分支推送后创建 PR |
