@@ -53,10 +53,10 @@ forbidden_capabilities:
 
 ## 1. 模型网关与允许网络端点
 
-- 网关：`openrouter`（LiteLLM 或 OpenRouter 中恰好一个）。
+- 网关：`openai_compatible`（LiteLLM 或 OpenRouter 中恰好一个）。
 - Allowed_Network_Endpoint（仅 HTTPS）：
-  - `https://openrouter.ai/api/v1/chat/completions`（模型调用端点）
-- 指定模型标识：`openai/gpt-4o-mini`
+  - `https://api.deepseek.com/chat/completions`（模型调用端点）
+- 指定模型标识：`deepseek-flash`
 - 端点按完整字符串精确匹配：不接受 HTTP、其他主机、其他路径或变体；网关客户端不得跟随重定向。
 - 访问未列出的端点即阻止并以失败状态结束工作流。
 - 运行时配置 `MODEL_GATEWAY` 与 `MODEL_ID` 必须与本清单的网关和模型一致，否则在调用前失败。
