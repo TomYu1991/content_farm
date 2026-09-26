@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "content-pipeline"
+version = "0.1.0"
+description = "Draft generator for the content-pipeline-skeleton static blog (human review required before publishing)."
+requires-python = ">=3.11"
+# Exact pins; keep in sync with requirements.lock.
+dependencies = [
+  "httpx==0.28.1",
+  "PyYAML==6.0.3",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest==9.1.1",
+  "hypothesis==6.168.1",
+  "respx==0.23.1",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["content_pipeline*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

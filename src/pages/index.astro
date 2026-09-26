@@ -1,0 +1,17 @@
+---
+// Home page: the sorted Production_Article_Set (pubDate DESC, Canonical_URL ASC).
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ArticleList from '../components/ArticleList.astro';
+import { getProductionArticles } from '../lib/articles';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../lib/site-meta';
+
+const articles = await getProductionArticles();
+---
+<BaseLayout>
+  <h1>{SITE_TITLE}</h1>
+  <p class="lead">{SITE_DESCRIPTION}</p>
+  <section aria-labelledby="latest-heading">
+    <h2 id="latest-heading" class="section-heading">最新文章</h2>
+    <ArticleList articles={articles} headingLevel={3} />
+  </section>
+</BaseLayout>

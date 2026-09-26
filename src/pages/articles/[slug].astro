@@ -1,0 +1,63 @@
+---
+// Article page: one static route per Production_Article_Set item. The body is
+// compiled from the Markdown Content_File by Astro at build time.
+import { render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import TagLinks from '../../components/TagLinks.astro';
+import { getProductionArticles, type PublishedArticle } from '../../lib/articles';
+import { formatDate } from '../../lib/listing';
+import { articleSeo } from '../../lib/discovery';
+import { SITE_LANG, SITE_TITLE } from '../../lib/site-meta';
+
+export async function getStaticPaths() {
+  const articles = await getProductionArticles();
+  return articles.map((article) => ({ params: { slug: article.slug }, props: { article } }));
+}
+
+interface Props {
+  article: PublishedArticle;
+}
+
+const { article } = Astro.props;
+const { data } = article;
+const { Content } = await render(article.entry);
+// Same Canonical_URL as RSS and sitemap (computed once in selectProductionArticles).
+const seo = articleSeo(article, SITE_TITLE, SITE_LANG);
+---
+<BaseLayout title={seo.title} description={seo.description} canonicalUrl={seo.canonicalUrl} meta={seo.meta}>
+  <article class="article">
+    <header class="article-header">
+      <h1>{data.title}</h1>
+      <p class="article-meta">
+        发布于 <time datetime={data.pubDate}>{formatDate(data.pubDate)}</time>
+        {
+          data.updatedDate && (
+            <>
+              · 更新于 <time datetime={data.updatedDate}>{formatDate(data.updatedDate)}</time>
+            </>
+          )
+        }
+      </p>
+      <p class="lead">{data.description}</p>
+      <TagLinks tags={data.tags} />
+    </header>
+    <div class="prose">
+      <Content />
+    </div>
+    {
+      data.sources.length > 0 && (
+        <section class="sources" aria-labelledby="sources-heading">
+          <h2 id="sources-heading">来源</h2>
+          <ul>
+            {data.sources.map((source) => (
+              <li>
+                <a href={source.url} rel="noopener noreferrer">{source.title}</a>
+                {' '}（访问于 <time datetime={source.accessedDate}>{formatDate(source.accessedDate)}</time>）
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+  </article>
+</BaseLayout>

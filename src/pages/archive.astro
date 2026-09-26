@@ -1,0 +1,30 @@
+---
+// Archive: the sorted Production_Article_Set grouped by UTC publish year.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getProductionArticles } from '../lib/articles';
+import { formatDate, groupByYear } from '../lib/listing';
+
+const years = groupByYear(await getProductionArticles());
+---
+<BaseLayout title="归档" description="按发布时间浏览全部文章。">
+  <h1>归档</h1>
+  {
+    years.length === 0 ? (
+      <p class="empty-state">暂无文章。</p>
+    ) : (
+      years.map((group) => (
+        <section class="archive-year" aria-labelledby={`year-${group.year}`}>
+          <h2 id={`year-${group.year}`}>{group.year}</h2>
+          <ol class="archive-list">
+            {group.articles.map((article) => (
+              <li>
+                <time datetime={article.data.pubDate}>{formatDate(article.data.pubDate)}</time>
+                <a href={article.path}>{article.data.title}</a>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ))
+    )
+  }
+</BaseLayout>

@@ -1,0 +1,51 @@
+# Read-only Human_Editorial_Gate status check (Requirements 5.7–5.10, 7.3–7.6, 9.2, 9.5–9.7).
+#
+# Verifies that a PR touching src/content/articles/ records the five review items
+# (facts_and_sources, reader_value, tone, links, title) in its description and that
+# each article's draft was changed true -> false by a non-automation commit.
+#
+# This workflow only reports pass/fail. It has read-only permissions and never
+# approves, merges, pushes or publishes. Make "review-gate" a required status check
+# (plus a required human approval) in the Default_Branch protection rules.
+name: review-gate
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  review-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository (full history, no stored credentials)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pinned dependencies
+        run: |
+          python -m pip install -r requirements.lock
+          python -m pip install --no-deps -e .
+
+      - name: Check five review records and manual draft transition
+        env:
+          # Passed via env (never interpolated into the script) to avoid injection.
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: >-
+          python -m content_pipeline.review_gate
+          --base "$BASE_SHA"
+          --head "$HEAD_SHA"
+          --body-env PR_BODY

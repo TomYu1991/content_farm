@@ -1,0 +1,26 @@
+---
+/**
+ * Tag links as native <a href> elements: focusable with Tab and activated with
+ * Enter by the browser, with a visible :focus-visible outline (global.css).
+ */
+import { articleTags } from '../lib/listing';
+
+interface Props {
+  tags: readonly string[];
+}
+
+const items = articleTags(Astro.props.tags);
+---
+{
+  items.length > 0 && (
+    <ul class="tag-list" aria-label="标签">
+      {items.map((tag) => (
+        <li>
+          <a class="tag-link" href={tag.path}>
+            #{tag.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  )
+}

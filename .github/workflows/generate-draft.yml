@@ -1,0 +1,284 @@
+# Generation_Workflow: manually generate ONE reviewable Markdown draft.
+#
+# - Trigger: workflow_dispatch only (Requirements 3.1, 3.12). No schedule,
+#   push or pull_request trigger; scheduled generation is out of MVP scope.
+# - Two jobs so the model credential and the repository write token never
+#   share a job:
+#     generate      contents: read, persist-credentials: false; the single
+#                   gateway secret is injected into ONE step only.
+#     draft-branch  contents: write; no model secret; pushes only to
+#                   draft/<64-hex stable key>, never to the Default_Branch.
+# - No pull-requests permission is granted: with pull-requests: write the
+#   GITHUB_TOKEN could approve PRs (Requirement 5.10). The run instead prints a
+#   compare URL to open the review PR manually (Requirements 5.7, 5.11).
+# - No deploy/hosting secret is referenced anywhere in this file; deploy
+#   credentials belong only to the deployment workflow/environment (task 7.1).
+# - This workflow never approves, merges or publishes. Publishing happens only
+#   when an editor completes the five review items, flips draft: true -> false
+#   and merges the PR (Requirements 7.3–7.6).
+#
+# Required repository branch protection on the Default_Branch (the enforcing
+# guard for Requirement 5.10, since contents: write cannot be scoped to
+# branches): require a pull request with at least one human approval, and do
+# not allow GitHub Actions to bypass it or to create/approve pull requests
+# (Settings > Actions > General).
+#
+# Configuration (Settings > Secrets and variables > Actions):
+#   secret   MODEL_GATEWAY_API_KEY          single gateway credential
+#   variable MODEL_GATEWAY, MODEL_ID        must match docs/compliance.md
+#   variable BUDGET_INPUT_PRICE_PER_MTOK, BUDGET_OUTPUT_PRICE_PER_MTOK,
+#            BUDGET_MAX_INPUT_TOKENS, BUDGET_MAX_OUTPUT_TOKENS,
+#            BUDGET_MAX_COST_PER_ARTICLE, BUDGET_MAX_COST_PER_RUN
+
+name: Generate draft (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: "选题（最多 160 个字符）"
+        required: true
+        type: string
+      audience:
+        description: "读者画像（最多 160 个字符）"
+        required: true
+        type: string
+      keywords:
+        description: "关键词（最多 300 个字符）"
+        required: true
+        type: string
+      prompt_name:
+        description: "Prompt 名称（prompts/*.md 中的 name）"
+        required: true
+        type: string
+      prompt_version:
+        description: "Prompt 版本（MAJOR.MINOR.PATCH）"
+        required: true
+        type: string
+
+# Deny everything by default; each job opts into the minimum it needs.
+permissions: {}
+
+concurrency:
+  group: generate-draft
+  cancel-in-progress: false
+
+env:
+  PYTHONUNBUFFERED: "1"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  # Inputs reach scripts only through the environment, never through ${{ }}
+  # interpolation inside run: blocks (prevents script injection).
+  GEN_TOPIC: ${{ inputs.topic }}
+  GEN_AUDIENCE: ${{ inputs.audience }}
+  GEN_KEYWORDS: ${{ inputs.keywords }}
+  GEN_PROMPT_NAME: ${{ inputs.prompt_name }}
+  GEN_PROMPT_VERSION: ${{ inputs.prompt_version }}
+
+jobs:
+  generate:
+    name: Generate and validate draft (read-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Require the Default_Branch workflow definition
+        env:
+          RUN_REF: ${{ github.ref }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if [ "$RUN_REF" != "refs/heads/$DEFAULT_BRANCH" ]; then
+            echo "::error::Run this workflow from the default branch so reviewed generation code is used."
+            exit 1
+          fi
+
+      - name: Check out repository (read-only, no persisted token)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pinned Python dependencies
+        run: |
+          python -m pip install -r requirements.lock
+          python -m pip install --no-deps .
+
+      - name: Generate draft bundle
+        # The only step that can read the model gateway credential.
+        env:
+          MODEL_GATEWAY: ${{ vars.MODEL_GATEWAY }}
+          MODEL_ID: ${{ vars.MODEL_ID }}
+          MODEL_GATEWAY_API_KEY: ${{ secrets.MODEL_GATEWAY_API_KEY }}
+          BUDGET_INPUT_PRICE_PER_MTOK: ${{ vars.BUDGET_INPUT_PRICE_PER_MTOK }}
+          BUDGET_OUTPUT_PRICE_PER_MTOK: ${{ vars.BUDGET_OUTPUT_PRICE_PER_MTOK }}
+          BUDGET_MAX_INPUT_TOKENS: ${{ vars.BUDGET_MAX_INPUT_TOKENS }}
+          BUDGET_MAX_OUTPUT_TOKENS: ${{ vars.BUDGET_MAX_OUTPUT_TOKENS }}
+          BUDGET_MAX_COST_PER_ARTICLE: ${{ vars.BUDGET_MAX_COST_PER_ARTICLE }}
+          BUDGET_MAX_COST_PER_RUN: ${{ vars.BUDGET_MAX_COST_PER_RUN }}
+        # Orchestration order: inputs -> prompt -> compliance + gateway config
+        # -> budget -> model (<= 2 calls) -> draft schema -> stable key ->
+        # bundle. Any failure exits non-zero before a bundle exists, so the
+        # draft-branch job never runs. Prints only redacted audit values.
+        run: >-
+          python -m content_pipeline.cli generate
+          --bundle-dir "$RUNNER_TEMP/draft-bundle"
+          --policy docs/compliance.md
+          --prompts-dir prompts
+
+      - name: Verify draft bundle (schema, draft flags, model, stable key)
+        run: >-
+          python -m content_pipeline.cli verify-bundle
+          --bundle-dir "$RUNNER_TEMP/draft-bundle"
+          --policy docs/compliance.md
+
+      - name: Upload draft bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: draft-bundle
+          path: ${{ runner.temp }}/draft-bundle
+          if-no-files-found: error
+          retention-days: 1
+
+  draft-branch:
+    name: Create or update draft/<stable-key> for review
+    needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+      BUNDLE_DIR: ${{ runner.temp }}/draft-bundle
+      INSTRUCTIONS_FILE: ${{ runner.temp }}/pr-instructions.md
+    steps:
+      # Tooling comes from a separate, credential-free checkout of the
+      # Default_Branch so switching the work tree to the draft branch never
+      # changes the code or checklist being executed.
+      - name: Check out tooling (Default_Branch, no persisted token)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: tool
+          persist-credentials: false
+
+      - name: Check out work tree for the draft branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: repo
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pinned Python dependencies
+        run: |
+          python -m pip install -r tool/requirements.lock
+          python -m pip install --no-deps ./tool
+
+      - name: Download draft bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: draft-bundle
+          path: ${{ runner.temp }}/draft-bundle
+
+      - name: Verify draft bundle and resolve the draft branch
+        id: verify
+        run: >-
+          python -m content_pipeline.cli verify-bundle
+          --bundle-dir "$BUNDLE_DIR"
+          --policy tool/docs/compliance.md
+          --github-output "$GITHUB_OUTPUT"
+
+      - name: Switch work tree to the draft branch
+        id: branch
+        working-directory: repo
+        env:
+          BRANCH: ${{ steps.verify.outputs.branch }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$BRANCH" =~ ^draft/[0-9a-f]{64}$ ]] || [ "$BRANCH" = "$DEFAULT_BRANCH" ]; then
+            echo "::error::Refusing to write: target is not a draft/<sha256> branch."
+            exit 1
+          fi
+          set +e
+          git ls-remote --exit-code --heads origin "refs/heads/$BRANCH" > /dev/null
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ]; then
+            git fetch --no-tags origin "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH"
+            git switch --create "$BRANCH" "origin/$BRANCH"
+            echo "existing=true" >> "$GITHUB_OUTPUT"
+          elif [ "$rc" -eq 2 ]; then
+            git switch --create "$BRANCH"
+            echo "existing=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::Could not query the remote for the draft branch."
+            exit 1
+          fi
+
+      - name: Apply draft to the work tree
+        id: apply
+        env:
+          BRANCH: ${{ steps.verify.outputs.branch }}
+        run: >-
+          python -m content_pipeline.cli apply-draft
+          --bundle-dir "$BUNDLE_DIR"
+          --policy tool/docs/compliance.md
+          --repo repo
+          --branch "$BRANCH"
+          --default-branch "$DEFAULT_BRANCH"
+          --server-url "$GITHUB_SERVER_URL"
+          --repository "$GITHUB_REPOSITORY"
+          --instructions-file "$INSTRUCTIONS_FILE"
+          --github-output "$GITHUB_OUTPUT"
+
+      - name: Commit and push the draft branch only
+        working-directory: repo
+        env:
+          BRANCH: ${{ steps.verify.outputs.branch }}
+          DRAFT_PATH: ${{ steps.apply.outputs.path }}
+          EXISTING: ${{ steps.branch.outputs.existing }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$BRANCH" =~ ^draft/[0-9a-f]{64}$ ]] || [ "$BRANCH" = "$DEFAULT_BRANCH" ]; then
+            echo "::error::Refusing to push: target is not a draft/<sha256> branch."
+            exit 1
+          fi
+          if ! [[ "$DRAFT_PATH" =~ ^src/content/articles/[a-z0-9][a-z0-9-]{0,99}\.md$ ]]; then
+            echo "::error::Refusing to commit: unexpected draft path."
+            exit 1
+          fi
+          if [ "$(git symbolic-ref --short HEAD)" != "$BRANCH" ]; then
+            echo "::error::Work tree is not on the draft branch."
+            exit 1
+          fi
+          others="$(git status --porcelain --untracked-files=all -- . ":(exclude)$DRAFT_PATH")"
+          if [ -n "$others" ]; then
+            echo "::error::Unexpected changes outside the draft file; nothing was pushed."
+            exit 1
+          fi
+          if [ -z "$(git status --porcelain --untracked-files=all -- "$DRAFT_PATH")" ]; then
+            if [ "$EXISTING" = "true" ]; then
+              echo "Draft content unchanged on $BRANCH; no new commit."
+              exit 0
+            fi
+            echo "::error::Generated draft is identical to the Default_Branch; there is nothing to review."
+            exit 1
+          fi
+          git add -- "$DRAFT_PATH"
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit --quiet -m "draft: generate $DRAFT_PATH (requires human review)"
+          git push origin "HEAD:refs/heads/$BRANCH"
+
+      - name: Publish Pull Request creation instructions
+        run: |
+          cat "$INSTRUCTIONS_FILE" >> "$GITHUB_STEP_SUMMARY"
+          cat "$INSTRUCTIONS_FILE"

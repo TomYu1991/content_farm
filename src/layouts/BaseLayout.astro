@@ -1,0 +1,59 @@
+---
+/**
+ * Shared page shell. Text is rendered through Astro expressions (HTML-escaped);
+ * head meta tags go through `renderHeadMeta`, which fully escapes every
+ * content-derived attribute value (title, description, dates, tags).
+ */
+import '../styles/global.css';
+import { getSiteUrl } from '../lib/articles';
+import { renderHeadMeta, rssUrl, type MetaTag } from '../lib/discovery';
+import { SITE_DESCRIPTION, SITE_LANG, SITE_TITLE } from '../lib/site-meta';
+
+interface Props {
+  /** Page-specific title; omitted on the home page. */
+  title?: string;
+  description?: string;
+  /** Absolute Canonical_URL; article pages pass the shared canonical computation. */
+  canonicalUrl?: string;
+  /** Extra `<meta>` tags (Open Graph etc.). */
+  meta?: readonly MetaTag[];
+}
+
+const { title, description = SITE_DESCRIPTION, canonicalUrl, meta = [] } = Astro.props;
+const documentTitle = title ? `${title} | ${SITE_TITLE}` : SITE_TITLE;
+const feedUrl = rssUrl(getSiteUrl());
+---
+<!doctype html>
+<html lang={SITE_LANG}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{documentTitle}</title>
+    <Fragment set:html={renderHeadMeta({ description, canonicalUrl, meta })} />
+    <link rel="alternate" type="application/rss+xml" title={SITE_TITLE} href={feedUrl} />
+    <slot name="head" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳到正文</a>
+    <header class="site-header">
+      <div class="container site-header__inner">
+        <a class="site-title" href="/">{SITE_TITLE}</a>
+        <nav aria-label="主导航">
+          <ul class="site-nav">
+            <li><a href="/">首页</a></li>
+            <li><a href="/archive/">归档</a></li>
+            <li><a href="/tags/">标签</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+    <main id="main" class="container" tabindex="-1">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <p>{SITE_TITLE} · <a href="/rss.xml">RSS</a></p>
+      </div>
+    </footer>
+  </body>
+</html>

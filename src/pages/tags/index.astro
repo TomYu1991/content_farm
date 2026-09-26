@@ -1,0 +1,26 @@
+---
+// Tag index: every tag used by the Production_Article_Set, with article counts.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getProductionArticles } from '../../lib/articles';
+import { groupByTag } from '../../lib/listing';
+
+const groups = groupByTag(await getProductionArticles());
+---
+<BaseLayout title="标签" description="按标签浏览文章。">
+  <h1>标签</h1>
+  {
+    groups.length === 0 ? (
+      <p class="empty-state">暂无标签。</p>
+    ) : (
+      <ul class="tag-list tag-list--index" aria-label="全部标签">
+        {groups.map((group) => (
+          <li>
+            <a class="tag-link" href={group.path}>
+              #{group.label} <span class="tag-count">（{group.articles.length}）</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</BaseLayout>

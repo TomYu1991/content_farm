@@ -1,0 +1,23 @@
+---
+// Per-tag page: the sorted Production_Article_Set items carrying this tag.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ArticleList from '../../components/ArticleList.astro';
+import { getProductionArticles, type PublishedArticle } from '../../lib/articles';
+import { groupByTag, type TagGroup } from '../../lib/listing';
+
+export async function getStaticPaths() {
+  const groups = groupByTag(await getProductionArticles());
+  return groups.map((group) => ({ params: { tag: group.slug }, props: { group } }));
+}
+
+interface Props {
+  group: TagGroup<PublishedArticle>;
+}
+
+const { group } = Astro.props;
+---
+<BaseLayout title={`标签：${group.label}`} description={`标签“${group.label}”下的文章。`}>
+  <h1>标签：{group.label}</h1>
+  <p><a href="/tags/">← 全部标签</a></p>
+  <ArticleList articles={group.articles} />
+</BaseLayout>

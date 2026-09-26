@@ -1,0 +1,42 @@
+---
+/**
+ * Renders a list of Production_Article_Set items in the order given (callers
+ * pass the already sorted set). Renders an empty-state message and no
+ * article items when the list is empty.
+ */
+import TagLinks from './TagLinks.astro';
+import { formatDate } from '../lib/listing';
+import type { PublishedArticle } from '../lib/articles';
+
+interface Props {
+  articles: readonly PublishedArticle[];
+  /** Heading level of each item title. */
+  headingLevel?: 2 | 3;
+  emptyText?: string;
+}
+
+const { articles, headingLevel = 2, emptyText = '暂无文章。' } = Astro.props;
+const Heading = headingLevel === 3 ? 'h3' : 'h2';
+---
+{
+  articles.length === 0 ? (
+    <p class="empty-state">{emptyText}</p>
+  ) : (
+    <ol class="article-list">
+      {articles.map((article) => (
+        <li class="article-item">
+          <article>
+            <Heading class="article-item__title">
+              <a href={article.path}>{article.data.title}</a>
+            </Heading>
+            <p class="article-meta">
+              <time datetime={article.data.pubDate}>{formatDate(article.data.pubDate)}</time>
+            </p>
+            <p class="article-item__description">{article.data.description}</p>
+            <TagLinks tags={article.data.tags} />
+          </article>
+        </li>
+      ))}
+    </ol>
+  )
+}

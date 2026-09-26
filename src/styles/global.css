@@ -1,0 +1,346 @@
+/*
+ * Reading styles. Mobile-first: at 320–768 CSS px the page is a single fluid
+ * column, long words/URLs wrap, and media, code and tables never widen the
+ * page, so reading the article body needs no horizontal scrolling.
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  --color-text: #1f2328;
+  --color-muted: #57606a;
+  --color-bg: #ffffff;
+  --color-surface: #f6f8fa;
+  --color-border: #d0d7de;
+  --color-link: #0550ae;
+  --color-focus: #bf3989;
+  --measure: 42rem;
+  --gutter: clamp(1rem, 4vw, 2rem);
+  color-scheme: light;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-width: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  overflow-wrap: break-word;
+}
+
+.container {
+  width: 100%;
+  max-width: calc(var(--measure) + 2 * var(--gutter));
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+main {
+  display: block;
+  padding-block: 1.5rem 3rem;
+}
+
+main:focus {
+  outline: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  line-height: 1.3;
+  margin-block: 1.6em 0.6em;
+  overflow-wrap: anywhere;
+}
+
+h1 {
+  font-size: clamp(1.625rem, 5vw + 0.5rem, 2.25rem);
+  margin-top: 0.5em;
+}
+
+h2 {
+  font-size: clamp(1.3rem, 3vw + 0.5rem, 1.6rem);
+}
+
+h3 {
+  font-size: 1.2rem;
+}
+
+p,
+ul,
+ol,
+blockquote,
+pre,
+table,
+figure {
+  margin-block: 0 1.1em;
+}
+
+a {
+  color: var(--color-link);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  overflow-wrap: anywhere;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* Visible keyboard focus for every link, including tag links. */
+a:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  left: 0.5rem;
+  top: -3rem;
+  z-index: 10;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-bg);
+  border: 2px solid var(--color-focus);
+}
+
+.skip-link:focus {
+  top: 0.5rem;
+}
+
+/* Header / footer */
+.site-header {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.site-header__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  padding-block: 0.75rem;
+}
+
+.site-title {
+  font-weight: 700;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.site-nav a {
+  display: inline-block;
+  padding-block: 0.25rem;
+}
+
+.site-footer {
+  border-top: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.site-footer p {
+  margin: 1rem 0;
+}
+
+/* Listings */
+.lead {
+  color: var(--color-muted);
+  font-size: 1.1rem;
+}
+
+.section-heading {
+  margin-top: 1.5em;
+}
+
+.empty-state {
+  color: var(--color-muted);
+}
+
+.article-list,
+.archive-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.article-item {
+  padding-block: 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.article-item__title {
+  margin: 0 0 0.25rem;
+}
+
+.article-item__description {
+  margin-bottom: 0.5rem;
+}
+
+.article-meta {
+  margin: 0 0 0.5rem;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.archive-list li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.75rem;
+  padding-block: 0.35rem;
+}
+
+.archive-list time {
+  color: var(--color-muted);
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+
+.archive-list a {
+  min-width: 0;
+}
+
+/* Tags: native links; touch target >= 24px; visible focus from a:focus-visible. */
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tag-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  max-width: 100%;
+  padding: 0.125rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  text-decoration: none;
+}
+
+.tag-link:hover {
+  border-color: var(--color-link);
+  text-decoration: underline;
+}
+
+.tag-count {
+  color: var(--color-muted);
+}
+
+/* Article */
+.article-header {
+  margin-bottom: 2rem;
+}
+
+.prose {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.prose img,
+.prose video,
+.prose iframe,
+.prose svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.prose blockquote {
+  margin-inline: 0;
+  padding-left: 1rem;
+  border-left: 4px solid var(--color-border);
+  color: var(--color-muted);
+}
+
+.prose ul,
+.prose ol {
+  padding-left: 1.5rem;
+}
+
+.prose code {
+  font-family: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace;
+  font-size: 0.9em;
+  background: var(--color-surface);
+  padding: 0.1em 0.3em;
+  border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+
+/* Code blocks wrap instead of forcing the page wider. */
+.prose pre {
+  max-width: 100%;
+  padding: 1rem;
+  background: var(--color-surface);
+  border-radius: 6px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow-x: auto;
+}
+
+.prose pre code {
+  padding: 0;
+  background: none;
+  white-space: inherit;
+}
+
+/* Wide tables scroll inside their own box, never the page. */
+.prose table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.prose th,
+.prose td {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--color-border);
+  text-align: left;
+}
+
+.prose hr {
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  margin-block: 2rem;
+}
+
+.sources {
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.95rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a {
+    transition: text-decoration-thickness 0.1s;
+  }
+}

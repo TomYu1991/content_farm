@@ -1,0 +1,16 @@
+# Node / Astro
+node_modules/
+dist/
+.astro/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.hypothesis/
+
+# Secrets
+.env
+.env.*

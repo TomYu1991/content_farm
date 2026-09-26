@@ -1,0 +1,165 @@
+# Deployment_Pipeline: build the Astro static site and publish it to the
+# configured static hosting target (Cloudflare Pages, Direct Upload).
+# Requirements 1.2, 1.3, 1.5, 1.6, 7.6.
+#
+# - Trigger: push to the Default_Branch only, i.e. after a reviewed Pull Request
+#   has been merged (Default_Branch protection requires PRs + human approval).
+#   There is no workflow_dispatch, schedule, pull_request or draft/** trigger.
+#   If the repository's default branch is not "main", change `branches` below;
+#   the job-level guard additionally refuses any ref that is not the default
+#   branch.
+# - The Generation_Workflow (generate-draft.yml) cannot trigger this workflow:
+#   it only pushes draft/<sha256> branches (not matched by `branches`), and
+#   pushes made with GITHUB_TOKEN never start new workflow runs.
+# - Two jobs:
+#     build   contents: read, no secrets. npm ci (lockfile) -> tests -> astro
+#             build -> check required outputs -> upload dist/ as an artifact.
+#     deploy  needs build; runs in the "production" environment, the ONLY
+#             place the hosting credentials exist. Uploads the already-built
+#             dist/ artifact; it never builds or reads the source tree.
+#   If any build step fails, deploy never runs, the run ends as failed and the
+#   hosting target keeps serving the deployment that was live before the run
+#   (Requirement 1.3). A Pages Direct Upload only becomes the live production
+#   deployment after the whole upload succeeds, so a failed upload also leaves
+#   the previous deployment in place.
+# - Output is static files only: no server adapter, Functions, database, queue,
+#   VPS, Docker or other runtime service (Requirement 1.6). This file makes no
+#   claim about hosting prices or free tiers (Requirement 1.5 is a target only).
+#
+# Required setup (Settings > Environments > "production"):
+#   deployment branches   restrict to the Default_Branch only
+#   secret   CLOUDFLARE_API_TOKEN     token scoped to "Cloudflare Pages: Edit"
+#                                     for this account only
+#   secret   CLOUDFLARE_ACCOUNT_ID
+#   Store these two as ENVIRONMENT secrets, never as repository secrets, so the
+#   Generation_Workflow and review-gate jobs cannot read them.
+# Repository variables (Settings > Secrets and variables > Actions > Variables):
+#   SITE_URL                   absolute HTTPS site root (Site_URL_Setting)
+#   CLOUDFLARE_PAGES_PROJECT   Pages project name (Direct Upload project)
+# The Pages project must be a Direct Upload project with no Git integration;
+# a Git-connected project would also build draft/* branches as previews.
+
+name: Deploy static site
+
+on:
+  push:
+    branches:
+      - main
+
+# Deny everything by default; each job opts into the minimum it needs.
+permissions: {}
+
+# Serialise production deployments; never cancel one that is uploading.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build static site (no secrets)
+    if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      SITE_URL: ${{ vars.SITE_URL }}
+    steps:
+      - name: Require an absolute HTTPS SITE_URL
+        run: |
+          if ! [[ "$SITE_URL" =~ ^https://[^[:space:]]+$ ]]; then
+            echo "::error::Repository variable SITE_URL must be set to the absolute HTTPS site root."
+            exit 1
+          fi
+
+      - name: Check out repository (read-only, no persisted token)
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22.12.0"
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Run site tests
+        run: npm test
+
+      - name: Build static site
+        run: npm run build
+
+      - name: Check required static outputs
+        run: |
+          set -euo pipefail
+          for f in index.html rss.xml sitemap.xml robots.txt; do
+            if [ ! -s "dist/$f" ]; then
+              echo "::error::Build output dist/$f is missing or empty; nothing will be deployed."
+              exit 1
+            fi
+          done
+          if [ -e dist/_worker.js ] || [ -d functions ]; then
+            echo "::error::Dynamic runtime code found; only static output may be deployed."
+            exit 1
+          fi
+
+      - name: Upload build output
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: site-dist
+          path: dist
+          if-no-files-found: error
+          retention-days: 1
+
+  deploy:
+    name: Deploy to static hosting
+    needs: build
+    if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    environment:
+      name: production
+      url: ${{ vars.SITE_URL }}
+    steps:
+      - name: Download build output
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: site-dist
+          path: dist
+
+      - name: Validate deployment settings
+        id: target
+        env:
+          PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          if ! [[ "$PROJECT" =~ ^[a-z0-9][a-z0-9-]{0,57}$ ]]; then
+            echo "::error::Repository variable CLOUDFLARE_PAGES_PROJECT is missing or not a valid Pages project name."
+            exit 1
+          fi
+          if ! [[ "$DEFAULT_BRANCH" =~ ^[A-Za-z0-9._/-]+$ ]]; then
+            echo "::error::Unexpected default branch name."
+            exit 1
+          fi
+          if [ ! -s dist/index.html ]; then
+            echo "::error::Downloaded build output is incomplete."
+            exit 1
+          fi
+          echo "project=$PROJECT" >> "$GITHUB_OUTPUT"
+          echo "branch=$DEFAULT_BRANCH" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to Cloudflare Pages (production)
+        # The only step that can read the hosting credentials. Values used in
+        # `command` were validated above.
+        uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65 # v3.14.1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4.141.0"
+          command: pages deploy dist --project-name=${{ steps.target.outputs.project }} --branch=${{ steps.target.outputs.branch }} --commit-hash=${{ github.sha }}

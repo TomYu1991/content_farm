@@ -1,0 +1,246 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 初始化 Astro 的 TypeScript 静态输出配置、Python 3.11+ 包结构、锁定依赖与测试命令": [
+      {
+        "executionId": "6c0fef5e-94d7-4932-958b-46912e432560",
+        "chatSessionId": "sess_6ed65bd3-5ddc-4733-b99b-2f28b2677aad",
+        "timestamp": 1790402311768
+      },
+      {
+        "executionId": "6c0fef5e-94d7-4932-958b-46912e432560",
+        "chatSessionId": "sess_6ed65bd3-5ddc-4733-b99b-2f28b2677aad",
+        "timestamp": 1790402774895
+      }
+    ],
+    "1. 建立 Python 与 Astro 静态项目基础": [
+      {
+        "executionId": "6c0fef5e-94d7-4932-958b-46912e432560",
+        "chatSessionId": "sess_6ed65bd3-5ddc-4733-b99b-2f28b2677aad",
+        "timestamp": 1790402775051
+      }
+    ],
+    "2.1 建立 Astro Content Collection 与 Article Schema，并实现防御性 `Production_Article_Set` 选择、排序和 canonical URL 纯函数": [
+      {
+        "executionId": "f15f9d4d-53eb-48eb-ac3a-6827d46964a5",
+        "chatSessionId": "sess_5aaee3c5-43ae-4640-9085-ff51330881aa",
+        "timestamp": 1790402824803
+      },
+      {
+        "executionId": "f90a18d8-0cbd-436c-94da-f9ec6b2dad02",
+        "chatSessionId": "sess_f5455764-f7f3-44a9-859e-4d54fbf2f57e",
+        "timestamp": 1790403997547
+      },
+      {
+        "executionId": "f90a18d8-0cbd-436c-94da-f9ec6b2dad02",
+        "chatSessionId": "sess_f5455764-f7f3-44a9-859e-4d54fbf2f57e",
+        "timestamp": 1790404242794
+      }
+    ],
+    "2.3 实现首页、文章、标签和归档静态路由，以及可键盘访问标签的响应式阅读样式": [
+      {
+        "executionId": "f92d88fe-4b54-415c-a7dd-ac5a07157d41",
+        "chatSessionId": "sess_f339d2a6-4da3-423a-9dea-903d621f0842",
+        "timestamp": 1790404302871
+      },
+      {
+        "executionId": "f92d88fe-4b54-415c-a7dd-ac5a07157d41",
+        "chatSessionId": "sess_f339d2a6-4da3-423a-9dea-903d621f0842",
+        "timestamp": 1790404768049
+      }
+    ],
+    "2.4 实现 RSS 2.0、sitemap、robots 与文章 SEO/OG 输出": [
+      {
+        "executionId": "a86b4c5a-85e2-413c-9cd9-07e7247e8c96",
+        "chatSessionId": "sess_7d1a0b9e-8ce3-434b-ac5a-e191e28f69af",
+        "timestamp": 1790404817352
+      },
+      {
+        "executionId": "a86b4c5a-85e2-413c-9cd9-07e7247e8c96",
+        "chatSessionId": "sess_7d1a0b9e-8ce3-434b-ac5a-e191e28f69af",
+        "timestamp": 1790405703452
+      }
+    ],
+    "2. 实现 Astro 内容模型、生产集合和静态阅读体验": [
+      {
+        "executionId": "a86b4c5a-85e2-413c-9cd9-07e7247e8c96",
+        "chatSessionId": "sess_7d1a0b9e-8ce3-434b-ac5a-e191e28f69af",
+        "timestamp": 1790405703581
+      }
+    ],
+    "3.1 实现 `GenerationRequest` 输入验证和版本化 `Prompt_Store` 唯一解析": [
+      {
+        "executionId": "4c7d46a1-c4fb-4e73-89da-c690a1eabebd",
+        "chatSessionId": "sess_b9637a21-25cc-452f-8156-8ba4340ccb2e",
+        "timestamp": 1790405759498
+      },
+      {
+        "executionId": "4c7d46a1-c4fb-4e73-89da-c690a1eabebd",
+        "chatSessionId": "sess_b9637a21-25cc-452f-8156-8ba4340ccb2e",
+        "timestamp": 1790405963574
+      }
+    ],
+    "3.3 实现草稿组装、Article Schema 校验、路径安全、CommonMark 原始 HTML 转义与规范编码写入": [
+      {
+        "executionId": "4c7d46a1-c4fb-4e73-89da-c690a1eabebd",
+        "chatSessionId": "sess_b9637a21-25cc-452f-8156-8ba4340ccb2e",
+        "timestamp": 1790405983239
+      },
+      {
+        "executionId": "4c7d46a1-c4fb-4e73-89da-c690a1eabebd",
+        "chatSessionId": "sess_b9637a21-25cc-452f-8156-8ba4340ccb2e",
+        "timestamp": 1790407209752
+      }
+    ],
+    "3. 实现 Python 的请求、Prompt 与草稿 schema 纯逻辑": [
+      {
+        "executionId": "4c7d46a1-c4fb-4e73-89da-c690a1eabebd",
+        "chatSessionId": "sess_b9637a21-25cc-452f-8156-8ba4340ccb2e",
+        "timestamp": 1790407209843
+      }
+    ],
+    "4.1 实现 NFC/空白规范化的稳定键、草稿分支/路径计划与幂等变更判定": [
+      {
+        "executionId": "7a0036a4-e218-4341-92ae-342381bc68ae",
+        "chatSessionId": "sess_cd48cbf7-f202-44a2-99c8-0f0c6e56e1c4",
+        "timestamp": 1790407298200
+      },
+      {
+        "executionId": "7a0036a4-e218-4341-92ae-342381bc68ae",
+        "chatSessionId": "sess_cd48cbf7-f202-44a2-99c8-0f0c6e56e1c4",
+        "timestamp": 1790407475950
+      }
+    ],
+    "5.1 创建 `docs/compliance.md` 和可读取的合规策略，固定允许端点、模型、两次调用上限、五项人工审核、禁止依赖/凭据与永久禁止能力": [
+      {
+        "executionId": "7a0036a4-e218-4341-92ae-342381bc68ae",
+        "chatSessionId": "sess_cd48cbf7-f202-44a2-99c8-0f0c6e56e1c4",
+        "timestamp": 1790407509964
+      },
+      {
+        "executionId": "7a0036a4-e218-4341-92ae-342381bc68ae",
+        "chatSessionId": "sess_cd48cbf7-f202-44a2-99c8-0f0c6e56e1c4",
+        "timestamp": 1790407785978
+      }
+    ],
+    "4.3 实现预算预估、合规化单网关适配器和最多一次网络重试状态机": [
+      {
+        "executionId": "7a0036a4-e218-4341-92ae-342381bc68ae",
+        "chatSessionId": "sess_cd48cbf7-f202-44a2-99c8-0f0c6e56e1c4",
+        "timestamp": 1790407806810
+      },
+      {
+        "executionId": "7a0036a4-e218-4341-92ae-342381bc68ae",
+        "chatSessionId": "sess_cd48cbf7-f202-44a2-99c8-0f0c6e56e1c4",
+        "timestamp": 1790408200705
+      }
+    ],
+    "4. 实现稳定草稿身份、预算控制和受限网关调用": [
+      {
+        "executionId": "7a0036a4-e218-4341-92ae-342381bc68ae",
+        "chatSessionId": "sess_cd48cbf7-f202-44a2-99c8-0f0c6e56e1c4",
+        "timestamp": 1790408200840
+      }
+    ],
+    "5.3 实现仅 `workflow_dispatch` 的 GitHub Actions 生成工作流与最小权限配置": [
+      {
+        "executionId": "340810b3-b462-46d4-980e-8c9567f5a11e",
+        "chatSessionId": "sess_c672c9cd-9e50-4992-adc4-7c48aa3ea9d2",
+        "timestamp": 1790408459911
+      },
+      {
+        "executionId": "340810b3-b462-46d4-980e-8c9567f5a11e",
+        "chatSessionId": "sess_c672c9cd-9e50-4992-adc4-7c48aa3ea9d2",
+        "timestamp": 1790409213072
+      }
+    ],
+    "5.4 创建 PR 审阅模板/校验配置，要求保留事实与来源、读者价值、语气、链接、标题五项记录并人工将 `draft: true` 改为 `false`": [
+      {
+        "executionId": "340810b3-b462-46d4-980e-8c9567f5a11e",
+        "chatSessionId": "sess_c672c9cd-9e50-4992-adc4-7c48aa3ea9d2",
+        "timestamp": 1790408460333
+      },
+      {
+        "executionId": "340810b3-b462-46d4-980e-8c9567f5a11e",
+        "chatSessionId": "sess_c672c9cd-9e50-4992-adc4-7c48aa3ea9d2",
+        "timestamp": 1790409214960
+      }
+    ],
+    "5. 配置合规策略、GitHub 手动生成工作流与人工审阅闸门": [
+      {
+        "executionId": "340810b3-b462-46d4-980e-8c9567f5a11e",
+        "chatSessionId": "sess_c672c9cd-9e50-4992-adc4-7c48aa3ea9d2",
+        "timestamp": 1790409215029
+      }
+    ],
+    "6.1 将输入、Prompt、合规、预算、网关、草稿校验与 Git 变更组件接入单一 CLI 编排入口": [
+      {
+        "executionId": "7cab59e9-0d42-4b40-a26f-42debf6df0ae",
+        "chatSessionId": "sess_1c7dadb7-5dd5-47df-87fb-e25a9e567581",
+        "timestamp": 1790409298668
+      },
+      {
+        "executionId": "7cab59e9-0d42-4b40-a26f-42debf6df0ae",
+        "chatSessionId": "sess_1c7dadb7-5dd5-47df-87fb-e25a9e567581",
+        "timestamp": 1790409758230
+      }
+    ],
+    "6. 接通端到端生成编排并固化人工可审阅输出": [
+      {
+        "executionId": "7cab59e9-0d42-4b40-a26f-42debf6df0ae",
+        "chatSessionId": "sess_1c7dadb7-5dd5-47df-87fb-e25a9e567581",
+        "timestamp": 1790409758908
+      }
+    ],
+    "7.1 创建仅在 Default_Branch 合并内容后运行的 Astro 构建/静态托管部署工作流": [
+      {
+        "executionId": "8547d9e2-72e9-48ab-9425-b119aa7dac35",
+        "chatSessionId": "sess_fa4459ce-1624-4acc-a8e6-c3195dbc7a75",
+        "timestamp": 1790409840947
+      },
+      {
+        "executionId": "8547d9e2-72e9-48ab-9425-b119aa7dac35",
+        "chatSessionId": "sess_fa4459ce-1624-4acc-a8e6-c3195dbc7a75",
+        "timestamp": 1790410222600
+      }
+    ],
+    "7. 配置默认分支静态部署与失败回退验证": [
+      {
+        "executionId": "8547d9e2-72e9-48ab-9425-b119aa7dac35",
+        "chatSessionId": "sess_fa4459ce-1624-4acc-a8e6-c3195dbc7a75",
+        "timestamp": 1790410222743
+      }
+    ],
+    "8.1 编写 README，说明本地构建/测试、手动 `workflow_dispatch`、部署配置、GitHub secrets、人工 PR 五项审阅清单、`draft` 发布转换和安全限制": [
+      {
+        "executionId": "e4da0d15-0813-4e75-bb3d-fd82b244753b",
+        "chatSessionId": "sess_3f0c0055-d55d-4d02-ac1c-4ed2f2023f84",
+        "timestamp": 1790410334130
+      },
+      {
+        "executionId": "e4da0d15-0813-4e75-bb3d-fd82b244753b",
+        "chatSessionId": "sess_3f0c0055-d55d-4d02-ac1c-4ed2f2023f84",
+        "timestamp": 1790410619897
+      }
+    ],
+    "8. 补齐运行与审阅说明并完成自动化回归入口": [
+      {
+        "executionId": "e4da0d15-0813-4e75-bb3d-fd82b244753b",
+        "chatSessionId": "sess_3f0c0055-d55d-4d02-ac1c-4ed2f2023f84",
+        "timestamp": 1790410620058
+      }
+    ],
+    "9. 检查点——确保全部测试通过": [
+      {
+        "executionId": "fd8983ae-3e52-462a-a4f4-3543951cdef9",
+        "chatSessionId": "sess_1342b7ee-2e49-45d1-99eb-1b9fb847e618",
+        "timestamp": 1790410673045
+      },
+      {
+        "executionId": "fd8983ae-3e52-462a-a4f4-3543951cdef9",
+        "chatSessionId": "sess_1342b7ee-2e49-45d1-99eb-1b9fb847e618",
+        "timestamp": 1790410751839
+      }
+    ]
+  }
+}
