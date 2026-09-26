@@ -3,11 +3,11 @@
 # gateway / allowed_endpoints / model_endpoint / model 为占位默认值，维护者可按实际
 # 网关修改；修改时须同步更新下方正文，且不得删除任何禁止项。
 policy_version: 1
-gateway: openrouter
-model_endpoint: https://openrouter.ai/api/v1/chat/completions
+gateway: openai_compatible
+model_endpoint: https://api.deepseek.com/chat/completions
 allowed_endpoints:
-  - https://openrouter.ai/api/v1/chat/completions
-model: openai/gpt-4o-mini
+  - https://api.deepseek.com/chat/completions
+model: deepseek-flash
 max_model_calls_per_run: 2
 human_editorial_gate:
   review_items:
