@@ -14,3 +14,6 @@ __pycache__/
 # Secrets
 .env
 .env.*
+
+# idea
+.idea
