@@ -1089,6 +1089,7 @@ description: 为人工审阅生成一篇面向读者的博客文章草稿。
 
 | 错误信息或现象 | 原因与解决 |
 | --- | --- |
+| Actions 左侧找不到 `Generate draft (manual)`，只看到 `.github/workflows/generate-draft.yml`，也没有 Run workflow 按钮 | 工作流文件有语法错误，GitHub 无法识别它。点进这条记录的 Workflow file，查看红色的 `Invalid workflow file` 提示。确认 main 上是最新代码；如果 main 上根本没有这个文件，Actions 列表里也不会出现 |
 | `Run this workflow from the default branch` | 触发时没有选 `main` 分支，重新触发并选择 `main` |
 | 提到 `topic`、`audience`、`keywords`、`prompt_name`、`prompt_version` | 该输入为空、超长或格式不对，按 11.1 表格修改 |
 | `prompt not found: 名称@版本` | Prompt 名称或版本填错，或新版本还没合并到 main |
