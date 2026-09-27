@@ -27,7 +27,7 @@ from content_pipeline.budget import (
 from content_pipeline.compliance import load_policy
 from content_pipeline.draft_identity import ChangeAction, draft_path, stable_key_for
 from content_pipeline.errors import ArticleValidationError, BudgetExceededError, ModelCallError
-from content_pipeline.gateway_config import CREDENTIAL_ENV, GATEWAY_ENV, MODEL_ENV
+from content_pipeline.gateway_config import BASE_URL_ENV, CREDENTIAL_ENV, GATEWAY_ENV, MODEL_ENV
 from content_pipeline.git_change import InMemoryGitBackend
 from content_pipeline.orchestrator import parse_model_result, run_generation
 from content_pipeline.request import GenerationRequest
@@ -51,6 +51,8 @@ KEY = stable_key_for(REQUEST, POLICY.model)
 ENV = {
     GATEWAY_ENV: POLICY.gateway,
     MODEL_ENV: POLICY.model,
+    # Works for every gateway: a URL already ending in /chat/completions is used as is.
+    BASE_URL_ENV: POLICY.model_endpoint,
     CREDENTIAL_ENV: SECRET,
     INPUT_PRICE_ENV: "0.15",
     OUTPUT_PRICE_ENV: "0.60",

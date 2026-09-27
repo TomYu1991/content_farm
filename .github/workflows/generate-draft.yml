@@ -155,10 +155,10 @@ jobs:
     timeout-minutes: 10
     permissions:
       contents: write
+    # The `runner` context is not available in job-level `env`, so temporary
+    # paths are built from the RUNNER_TEMP environment variable inside steps.
     env:
       DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-      BUNDLE_DIR: ${{ runner.temp }}/draft-bundle
-      INSTRUCTIONS_FILE: ${{ runner.temp }}/pr-instructions.md
     steps:
       # Tooling comes from a separate, credential-free checkout of the
       # Default_Branch so switching the work tree to the draft branch never
@@ -197,7 +197,7 @@ jobs:
         id: verify
         run: >-
           python -m content_pipeline.cli verify-bundle
-          --bundle-dir "$BUNDLE_DIR"
+          --bundle-dir "$RUNNER_TEMP/draft-bundle"
           --policy tool/docs/compliance.md
           --github-output "$GITHUB_OUTPUT"
 
@@ -234,14 +234,14 @@ jobs:
           BRANCH: ${{ steps.verify.outputs.branch }}
         run: >-
           python -m content_pipeline.cli apply-draft
-          --bundle-dir "$BUNDLE_DIR"
+          --bundle-dir "$RUNNER_TEMP/draft-bundle"
           --policy tool/docs/compliance.md
           --repo repo
           --branch "$BRANCH"
           --default-branch "$DEFAULT_BRANCH"
           --server-url "$GITHUB_SERVER_URL"
           --repository "$GITHUB_REPOSITORY"
-          --instructions-file "$INSTRUCTIONS_FILE"
+          --instructions-file "$RUNNER_TEMP/pr-instructions.md"
           --github-output "$GITHUB_OUTPUT"
 
       - name: Commit and push the draft branch only
@@ -285,5 +285,5 @@ jobs:
 
       - name: Publish Pull Request creation instructions
         run: |
-          cat "$INSTRUCTIONS_FILE" >> "$GITHUB_STEP_SUMMARY"
-          cat "$INSTRUCTIONS_FILE"
+          cat "$RUNNER_TEMP/pr-instructions.md" >> "$GITHUB_STEP_SUMMARY"
+          cat "$RUNNER_TEMP/pr-instructions.md"
