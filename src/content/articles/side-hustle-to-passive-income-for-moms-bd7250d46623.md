@@ -9,7 +9,7 @@ tags:
 - "宝妈"
 - "家庭理财"
 slug: "side-hustle-to-passive-income-for-moms"
-draft: true
+draft: false
 ai_assisted: true
 model: "deepseek-flash"
 prompt_version: "1.0.0"
