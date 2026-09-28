@@ -9,7 +9,7 @@ tags:
 - "个人博客"
 - "新手入门"
 slug: "choose-static-hosting-for-personal-blog"
-draft: true
+draft: false
 ai_assisted: true
 model: "deepseek-flash"
 prompt_version: "1.0.0"
