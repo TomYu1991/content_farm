@@ -1,0 +1,50 @@
+---
+/**
+ * Cover-image grid of published works, in the order given. The title link
+ * covers the whole card (via CSS) so one Tab stop opens the work.
+ */
+import { Image } from 'astro:assets';
+import { getCategory } from '../lib/categories';
+import { STATUS_LABELS } from '../lib/work-schema';
+import { workImage, type PublishedWork } from '../lib/works';
+
+interface Props {
+  works: readonly PublishedWork[];
+  headingLevel?: 2 | 3;
+  emptyText?: string;
+  /** Eager-load the first covers (above the fold on the home page). */
+  eagerCount?: number;
+}
+
+const { works, headingLevel = 2, emptyText = '暂无作品。', eagerCount = 0 } = Astro.props;
+const Heading = headingLevel === 3 ? 'h3' : 'h2';
+---
+{
+  works.length === 0 ? (
+    <p class="empty-state">{emptyText}</p>
+  ) : (
+    <ul class="work-grid">
+      {works.map((work, index) => (
+        <li class="work-card" data-category={work.data.category} data-difficulty={work.data.difficulty} data-status={work.data.status}>
+          <Image
+            class="work-card__image"
+            src={workImage(work.data.cover)}
+            alt={work.data.coverAlt}
+            widths={[400, 640, 960]}
+            sizes="(min-width: 64rem) 22rem, (min-width: 40rem) 45vw, 100vw"
+            loading={index < eagerCount ? 'eager' : 'lazy'}
+          />
+          <div class="work-card__body">
+            <Heading class="work-card__title">
+              <a href={work.path}>{work.data.title}</a>
+            </Heading>
+            <p class="work-card__meta">
+              {getCategory(work.data.category)?.label}
+              {work.data.status === 'in-progress' && <> · {STATUS_LABELS['in-progress']}</>}
+            </p>
+          </div>
+        </li>
+      ))}
+    </ul>
+  )
+}

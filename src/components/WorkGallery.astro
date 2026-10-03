@@ -1,0 +1,82 @@
+---
+/**
+ * Photo gallery of a work. Each thumbnail is a plain link to a large version
+ * (works without JavaScript); the script upgrades it to a native <dialog>
+ * lightbox (Esc closes it, focus returns to the thumbnail).
+ */
+import { Image, getImage } from 'astro:assets';
+import type { GalleryItem } from '../lib/work-schema';
+import { workImage } from '../lib/works';
+
+interface Props {
+  items: readonly GalleryItem[];
+}
+
+const items = await Promise.all(
+  Astro.props.items.map(async (item) => {
+    const src = workImage(item.src);
+    const large = await getImage({ src, width: Math.min(1600, src.width) });
+    return { ...item, src, largeSrc: large.src };
+  }),
+);
+---
+{
+  items.length > 0 && (
+    <section class="work-gallery" aria-labelledby="gallery-heading">
+      <h2 id="gallery-heading">过程与细节</h2>
+      <ul class="gallery-grid">
+        {items.map((item) => (
+          <li>
+            <figure>
+              <a
+                class="gallery-link"
+                href={item.largeSrc}
+                data-lightbox
+                data-alt={item.alt}
+                data-caption={item.caption ?? ''}
+              >
+                <Image
+                  src={item.src}
+                  alt={item.alt}
+                  widths={[320, 640]}
+                  sizes="(min-width: 48rem) 15rem, 50vw"
+                />
+              </a>
+              {item.caption && <figcaption>{item.caption}</figcaption>}
+            </figure>
+          </li>
+        ))}
+      </ul>
+      <dialog class="lightbox" aria-label="查看大图">
+        <form method="dialog">
+          <button class="lightbox__close" type="submit" aria-label="关闭">×</button>
+        </form>
+        <img class="lightbox__image" alt="" />
+        <p class="lightbox__caption"></p>
+      </dialog>
+    </section>
+  )
+}
+
+<script>
+  for (const gallery of document.querySelectorAll<HTMLElement>('.work-gallery')) {
+    const dialog = gallery.querySelector<HTMLDialogElement>('dialog.lightbox');
+    const image = dialog?.querySelector<HTMLImageElement>('.lightbox__image');
+    const caption = dialog?.querySelector<HTMLElement>('.lightbox__caption');
+    if (!dialog || !image || !caption || typeof dialog.showModal !== 'function') continue;
+    for (const link of gallery.querySelectorAll<HTMLAnchorElement>('a[data-lightbox]')) {
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        image.src = link.href;
+        image.alt = link.dataset.alt ?? '';
+        caption.textContent = link.dataset.caption ?? '';
+        caption.hidden = caption.textContent === '';
+        dialog.showModal();
+      });
+    }
+    // Clicking the backdrop (the dialog box itself, outside its content) closes it.
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) dialog.close();
+    });
+  }
+</script>

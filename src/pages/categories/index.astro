@@ -1,0 +1,24 @@
+---
+// Category index: every configured craft category with its work count.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { groupByCategory } from '../../lib/production-works';
+import { getProductionWorks } from '../../lib/works';
+
+const groups = groupByCategory(await getProductionWorks());
+---
+<BaseLayout title="分类" description="按手工门类浏览作品。" wide>
+  <h1>分类</h1>
+  <ul class="category-list">
+    {
+      groups.map((group) => (
+        <li class="category-item">
+          <h2 class="category-item__title">
+            <a href={group.path}>{group.label}</a>
+            <span class="tag-count">（{group.works.length}）</span>
+          </h2>
+          <p>{group.description}</p>
+        </li>
+      ))
+    }
+  </ul>
+</BaseLayout>

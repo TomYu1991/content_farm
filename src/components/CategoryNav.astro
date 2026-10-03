@@ -1,0 +1,36 @@
+---
+/**
+ * Category chips with work counts. Plain links (filtering by category is a
+ * page change), so it works without JavaScript; the current one is marked
+ * with aria-current.
+ */
+import { groupByCategory } from '../lib/production-works';
+import type { PublishedWork } from '../lib/works';
+
+interface Props {
+  works: readonly PublishedWork[];
+  /** Current category slug; omitted on the all-works page. */
+  current?: string;
+}
+
+const { works, current } = Astro.props;
+const groups = groupByCategory(works);
+---
+<nav class="category-nav" aria-label="按分类筛选">
+  <ul class="tag-list">
+    <li>
+      <a class="tag-link" href="/works/" aria-current={current === undefined ? 'page' : undefined}>
+        全部 <span class="tag-count">（{works.length}）</span>
+      </a>
+    </li>
+    {
+      groups.map((group) => (
+        <li>
+          <a class="tag-link" href={group.path} aria-current={current === group.slug ? 'page' : undefined}>
+            {group.label} <span class="tag-count">（{group.works.length}）</span>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</nav>

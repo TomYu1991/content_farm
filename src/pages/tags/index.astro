@@ -1,12 +1,14 @@
 ---
-// Tag index: every tag used by the Production_Article_Set, with article counts.
+// Tag index: every tag used by published works and articles, with counts.
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getProductionArticles } from '../../lib/articles';
 import { groupByTag } from '../../lib/listing';
+import { getProductionWorks } from '../../lib/works';
 
-const groups = groupByTag(await getProductionArticles());
+const [articles, works] = await Promise.all([getProductionArticles(), getProductionWorks()]);
+const groups = groupByTag([...articles, ...works]);
 ---
-<BaseLayout title="标签" description="按标签浏览文章。">
+<BaseLayout title="标签" description="按标签浏览作品与文章。">
   <h1>标签</h1>
   {
     groups.length === 0 ? (

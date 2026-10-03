@@ -23,6 +23,12 @@ Commands
     Content_File in a work tree checked out at ``draft/<stable_key>``; report
     ``action`` / ``path`` / ``requires_commit`` and write Pull Request
     creation instructions. The workflow's guarded shell step commits/pushes.
+``generate-work`` / ``verify-work-bundle`` / ``apply-work-draft``
+    The same two phases for portfolio works
+    (``.github/workflows/generate-work-draft.yml``): the maker's
+    ``work/<slug>`` checkout is read as data (``--work-repo``), the model
+    drafts description, tags and body, and only ``src/content/works/<slug>.md``
+    is rewritten on ``work/<slug>``. See :mod:`content_pipeline.work_pipeline`.
 
 Workflow inputs are read from the environment variables in :data:`INPUT_ENV`
 (passed via ``env:`` in the workflow, never interpolated into shell code).
@@ -49,6 +55,15 @@ from .errors import PipelineError
 from .git_change import WorkTreeBackend
 from .orchestrator import DEFAULT_PROMPTS_DIR, generate_bundle, publish_review, redact_env_secrets
 from .request import REQUEST_FIELDS, GenerationRequest, validate_request
+from .work import load_work_source
+from .work_pipeline import (
+    WORK_REQUEST_FIELDS,
+    apply_work_draft,
+    generate_work_bundle,
+    load_work_bundle,
+    validate_work_request,
+    work_pr_instructions,
+)
 
 # workflow_dispatch input name -> environment variable carrying it.
 INPUT_ENV: dict[str, str] = {
@@ -59,6 +74,14 @@ INPUT_ENV: dict[str, str] = {
     "prompt_version": "GEN_PROMPT_VERSION",
 }
 assert tuple(INPUT_ENV) == REQUEST_FIELDS
+
+# generate-work-draft.yml inputs -> environment variables.
+WORK_INPUT_ENV: dict[str, str] = {
+    "work_slug": "GEN_WORK_SLUG",
+    "prompt_name": "GEN_PROMPT_NAME",
+    "prompt_version": "GEN_PROMPT_VERSION",
+}
+assert tuple(WORK_INPUT_ENV) == WORK_REQUEST_FIELDS
 
 EXIT_OK = 0
 EXIT_FAILED = 1
@@ -125,6 +148,56 @@ def _cmd_apply_draft(args: argparse.Namespace, env: Mapping[str, str], seams: di
     return EXIT_OK
 
 
+def work_inputs_from_env(env: Mapping[str, str]) -> dict[str, str | None]:
+    return {name: env.get(var) for name, var in WORK_INPUT_ENV.items()}
+
+
+def _cmd_generate_work(args: argparse.Namespace, env: Mapping[str, str], seams: dict) -> int:
+    prepared = generate_work_bundle(
+        work_inputs_from_env(env),
+        env,
+        args.work_repo,
+        args.bundle_dir,
+        policy_path=args.policy,
+        prompts_dir=args.prompts_dir,
+        **seams,
+    )
+    _write_outputs(args.github_output, prepared.audit(), env)
+    return EXIT_OK
+
+
+def _verified_work(args: argparse.Namespace, env: Mapping[str, str]):
+    request = validate_work_request(work_inputs_from_env(env))
+    source = load_work_source(args.work_repo, request.work_slug)
+    return load_work_bundle(args.bundle_dir, request, load_policy(args.policy), source)
+
+
+def _cmd_verify_work_bundle(args: argparse.Namespace, env: Mapping[str, str], seams: dict) -> int:
+    work = _verified_work(args, env)
+    outputs = {"branch": work.branch, "stable_key": work.stable_key, "path": work.path}
+    _write_outputs(args.github_output, outputs, env)
+    return EXIT_OK
+
+
+def _cmd_apply_work_draft(args: argparse.Namespace, env: Mapping[str, str], seams: dict) -> int:
+    # The work tree is both the maker's source and the write target, so the
+    # bundle is re-verified against exactly the files that will be committed on.
+    args.work_repo = args.repo
+    work = _verified_work(args, env)
+    change = apply_work_draft(work, args.repo, branch=args.branch, default_branch=args.default_branch)
+    instructions = work_pr_instructions(
+        change, server_url=args.server_url, repository=args.repository, default_branch=args.default_branch
+    )
+    Path(args.instructions_file).write_text(instructions, encoding="utf-8", newline="\n")
+    outputs = {
+        "action": change.action.value,
+        "path": change.target.path,
+        "requires_commit": "true" if change.requires_commit else "false",
+    }
+    _write_outputs(args.github_output, outputs, env)
+    return EXIT_OK
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python -m content_pipeline.cli")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -152,6 +225,27 @@ def build_parser() -> argparse.ArgumentParser:
     apply.add_argument("--repository", required=True)
     apply.add_argument("--instructions-file", required=True)
     apply.set_defaults(handler=_cmd_apply_draft)
+
+    gen_work = sub.add_parser("generate-work", help="draft the text of one work from its notes")
+    common_args(gen_work)
+    gen_work.add_argument("--work-repo", required=True, help="checkout of work/<slug> (read only)")
+    gen_work.add_argument("--prompts-dir", default=str(DEFAULT_PROMPTS_DIR))
+    gen_work.set_defaults(handler=_cmd_generate_work)
+
+    verify_work = sub.add_parser("verify-work-bundle", help="re-validate a work bundle")
+    common_args(verify_work)
+    verify_work.add_argument("--work-repo", required=True, help="checkout of work/<slug> (read only)")
+    verify_work.set_defaults(handler=_cmd_verify_work_bundle)
+
+    apply_work = sub.add_parser("apply-work-draft", help="apply a work bundle to the work/<slug> work tree")
+    common_args(apply_work)
+    apply_work.add_argument("--repo", required=True)
+    apply_work.add_argument("--branch", required=True)
+    apply_work.add_argument("--default-branch", required=True)
+    apply_work.add_argument("--server-url", required=True)
+    apply_work.add_argument("--repository", required=True)
+    apply_work.add_argument("--instructions-file", required=True)
+    apply_work.set_defaults(handler=_cmd_apply_work_draft)
     return parser
 
 

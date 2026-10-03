@@ -1,10 +1,10 @@
 # 零基础搭建与使用手册
 
-这份手册手把手带你从一台只装了 Windows 的电脑开始，搭建一个“AI 写草稿、人工审阅后发布”的静态博客，并教你日常怎么使用。不需要编程基础，只要按顺序照做。
+这份手册手把手带你从一台只装了 Windows 的电脑开始，搭建一个“AI 写草稿、人工审阅后发布”的静态网站，并教你日常怎么使用。网站同时是个人手作作品集（照片、视频、材料清单）和博客（教程、随笔）。不需要编程基础，只要按顺序照做。
 
 - 首次搭建大约需要 2～3 小时，大部分时间花在注册账号和填写配置上。
 - 需要准备：一台 Windows 10/11 电脑、一个常用邮箱、一种能给 AI 模型服务商充值的付款方式（如 DeepSeek 等，金额很小）、能正常访问 GitHub、Cloudflare 和你所选模型服务商的网络。
-- 每一章结尾都有“检查点”。检查点没通过就先别往下做，去第 15 章找原因。
+- 每一章结尾都有“检查点”。检查点没通过就先别往下做，去第 16 章找原因。
 
 ## 阅读约定
 
@@ -34,10 +34,11 @@
 11. 完整演练：生成并发布第一篇文章
 12. 日常使用
 13. 手写文章
-14. 进阶设置
-15. 故障排查
-16. 安全与合规须知
-17. 附录：配置总表与常用命令
+14. 作品集：发布一件手作作品
+15. 进阶设置
+16. 故障排查
+17. 安全与合规须知
+18. 附录：配置总表与常用命令
 
 ---
 
@@ -50,12 +51,15 @@
 | Git | 装在电脑上的“版本记录”软件，记录文件的每一次修改 |
 | GitHub | 存放 Git 项目的网站，还能自动运行任务 |
 | 仓库（Repository） | 一个项目的全部文件和修改历史，相当于项目文件夹 |
-| 分支（Branch） | 仓库的一条“平行版本线”。`main` 是正式版本，网站就用它发布；AI 草稿放在 `draft/...` 分支，互不影响 |
+| 分支（Branch） | 仓库的一条“平行版本线”。`main` 是正式版本，网站就用它发布；AI 文章草稿放在 `draft/...` 分支，作品放在 `work/<作品名>` 分支，互不影响 |
 | 提交（Commit） | 保存一次修改，并附上一句说明 |
 | 推送（Push） | 把电脑上的提交上传到 GitHub |
 | Pull Request（PR） | “请把这个分支的修改合并到 main”的申请单，审阅就在这里进行 |
 | 合并（Merge） | 批准 PR 后，把修改正式并入 `main` |
-| GitHub Actions / 工作流 | GitHub 上的自动化任务。本项目有 3 个：生成草稿、审阅检查、部署网站 |
+| GitHub Actions / 工作流 | GitHub 上的自动化任务。本项目有 4 个：生成文章草稿、起草作品文字、审阅检查、部署网站 |
+| 作品（Work） | 作品集里的一件手作：照片、材料工具、制作过程，可附视频。网址形如 `/works/<作品名>/` |
+| 替代文本（alt） | 给每张照片写的一句文字描述，读屏软件会朗读它，图片加载失败时也会显示 |
+| EXIF / GPS | 手机照片里隐藏的拍摄信息，可能包含拍摄地点坐标。发布前必须去掉，本项目的导入命令会自动去掉 |
 | Secret | 存在 GitHub 里的保密信息（如密钥），任何人都看不到它的值 |
 | Variable | 存在 GitHub 里的普通配置（如模型名称） |
 | Environment | GitHub 里的“部署环境”，可以单独存放只给部署用的 Secret |
@@ -85,7 +89,9 @@
 ⑤ “部署”工作流自动构建网站，上传到 Cloudflare Pages，文章上线
 ```
 
-AI 永远只能写草稿。发布一定要经过人工审阅和人工合并，这是本项目的核心规则。
+作品走的是另一条相似的路：你在本机导入照片、写制作笔记，推送到 `work/<作品名>` 分支；可选地让 AI 根据笔记起草作品文字；之后同样是 PR、人工审阅（多一项“图片与视频”）、人工合并、自动部署。详见第 14 章。
+
+AI 永远只能写草稿，而且看不到你的照片。发布一定要经过人工审阅和人工合并，这是本项目的核心规则。
 
 ---
 
@@ -396,10 +402,10 @@ npm run test:all
 依次运行两组测试。结尾分别出现类似下面的内容就说明全部通过（具体数量会随项目更新而变化）：
 
 ```text
-Test Files  5 passed (5)
-     Tests  45 passed (45)
+Test Files  6 passed (6)
+     Tests  60 passed (60)
 ...
-383 passed in 4.44s
+456 passed in 7.00s
 ```
 
 出现 `failed` 字样说明有问题，先不要继续，把错误信息记下来排查。
@@ -410,7 +416,7 @@ Test Files  5 passed (5)
 npm run dev
 ```
 
-看到 `Local http://localhost:4321/` 后，用浏览器打开这个地址。你会看到标题为 “Content Pipeline”、“最新文章”下写着“暂无文章。”的首页，这是正常的，因为还没有发布任何文章。
+看到 `Local http://localhost:4321/` 后，用浏览器打开这个地址。你会看到标题为 “DIY Maker Hub”、“最新作品”下写着“暂无作品。”的首页，这是正常的，因为还没有发布任何作品或文章。顶部导航有“首页 / 作品 / 分类 / 文章 / 标签 / 关于”，都可以点开看看。网站名称和简介的改法见 15.1。
 
 预览完成后，回到 PowerShell 按 `Ctrl + C` 停止。
 
@@ -517,7 +523,7 @@ Settings → 左侧 Secrets and variables → Actions → Secrets 标签页 → 
 
 ### 8.3 添加配置变量（Variables）
 
-同一页面切换到 Variables 标签页，点 New repository variable，逐个添加下面 11 个变量（每添加一个点一次 Add variable）。示例值以 DeepSeek 为例，用其他服务商时换成你在 4.2 拿到的值：
+同一页面切换到 Variables 标签页，点 New repository variable，逐个添加下面 11 个变量（每添加一个点一次 Add variable）。另有一个可选变量 `CF_ANALYTICS_TOKEN`（免 Cookie 统计），现在可以先不加，见 15.8。示例值以 DeepSeek 为例，用其他服务商时换成你在 4.2 拿到的值：
 
 | Name | Value（示例） | 说明 |
 | --- | --- | --- |
@@ -553,11 +559,28 @@ Settings → 左侧 Secrets and variables → Actions → Secrets 标签页 → 
 
 `BUDGET_MAX_OUTPUT_TOKENS` 同时也是 AI 回答的最大长度。设得太小，文章会被截断，导致生成失败。8000 一般够写一篇中等长度的文章并留出思考空间；想要更长的文章可以调大，同时按公式调高两个费用上限。
 
+### 8.4 创建部署环境 production
+
+Settings → 左侧 Environments → New environment：
+
+1. Name 填 `production`，点 Configure environment。
+2. 找到 Deployment branches and tags，下拉选择 `Selected branches and tags`，点 Add deployment branch or tag rule，输入 `main`，点 Add rule。
+3. 找到 Environment secrets，点 Add environment secret，添加两个：
+
+   | Name | Value |
+   | --- | --- |
+   | `CLOUDFLARE_API_TOKEN` | 7.3 中复制的 Token |
+   | `CLOUDFLARE_ACCOUNT_ID` | 7.2 中复制的账号 ID |
+
+这两个必须添加在 production 环境里，不要加到 8.2 的仓库 Secret 中。这样只有部署步骤能读取它们，生成草稿的程序读不到。
+
 ### 8.5 在合规清单中登记模型地址
 
 为了安全，程序只会访问 `docs/compliance.md` 中登记过的地址和模型。只填 GitHub 变量还不够，这里要登记一次，而且登记的内容必须和 8.3 中填的完全一致，否则生成会在调用 AI 之前失败。
 
-现在还没有设置分支保护（第 10 章），可以直接在网页上修改 main：
+如果打开文件后发现开头已经是你的服务商地址和模型（比如别人已经改好），核对一致后直接跳到检查点。
+
+现在还没有设置分支保护（第 10 章），可以直接在网页上修改 main。如果已经设置了，就按 12.7 的方法新建分支、走 PR：
 
 1. 在仓库文件列表中依次打开 `docs` → `compliance.md`，点右上角铅笔图标编辑。
 2. 修改文件开头 `---` 之间的 4 处（以 DeepSeek 为例）：
@@ -598,21 +621,6 @@ Settings → 左侧 Secrets and variables → Actions → Secrets 标签页 → 
 
 这次提交会自动触发一次网站部署，第 9 章会用到。
 
-### 8.4 创建部署环境 production
-
-Settings → 左侧 Environments → New environment：
-
-1. Name 填 `production`，点 Configure environment。
-2. 找到 Deployment branches and tags，下拉选择 `Selected branches and tags`，点 Add deployment branch or tag rule，输入 `main`，点 Add rule。
-3. 找到 Environment secrets，点 Add environment secret，添加两个：
-
-   | Name | Value |
-   | --- | --- |
-   | `CLOUDFLARE_API_TOKEN` | 7.3 中复制的 Token |
-   | `CLOUDFLARE_ACCOUNT_ID` | 7.2 中复制的账号 ID |
-
-这两个必须添加在 production 环境里，不要加到 8.2 的仓库 Secret 中。这样只有部署步骤能读取它们，生成草稿的程序读不到。
-
 检查点：
 
 - [ ] Actions → General 中已取消勾选 “Allow GitHub Actions to create and approve pull requests”；
@@ -646,7 +654,7 @@ Settings → 左侧 Environments → New environment：
 
 浏览器打开 `https://<项目名>.pages.dev`，看到和 6.3 本地预览一样的首页（“暂无文章。”）就成功了。刚部署完如果打不开，等一两分钟再刷新。
 
-如果任务出现红色叉号，点进去找到红色的步骤，展开查看以 `Error` 或 `::error::` 开头的行，然后到第 15.3 节对照处理。
+如果任务出现红色叉号，点进去找到红色的步骤，展开查看以 `Error` 或 `::error::` 开头的行，然后到第 16.3 节对照处理。
 
 检查点：`https://<项目名>.pages.dev` 能打开首页。
 
@@ -674,6 +682,8 @@ Settings → 左侧 Rules → Rulesets → New ruleset → New branch ruleset：
 - `Require status checks to pass` 先不勾，第 11.4 节再回来添加。
 
 拉到底部点 Create。
+
+注意：完成 11.4 之前，review-gate 检查即使是红色失败，PR 也照样能合并。这段时间里看到红色检查一定不要点合并，否则未审阅的草稿会进入 main（见 16.6）。
 
 如果你的界面没有 Rulesets，也可以用 Settings → Branches → Add classic branch protection rule，Branch name pattern 填 `main`，勾选相同的选项。
 
@@ -749,6 +759,15 @@ GitHub 不允许批准自己创建的 PR，所以 `Required approvals` 为 1 时
 4. 描述框已经自动填好了审阅模板，先不用改。
 5. 点 Create pull request。
 
+从这里开始，请严格按顺序操作，合并一定是最后一步：
+
+```text
+11.4 设必需检查 → 11.5–11.7 阅读、审阅、修改 → 11.8 填审阅记录
+→ 11.9 本人把 draft 改为 false → review-gate 变绿 → 11.10 合并
+```
+
+PR 一旦合并就结束了。合并之后再往草稿分支提交任何修改（包括把 `draft` 改为 `false`），都不会进入 main，文章也不会上线。
+
 ### 11.4 添加必需检查 review-gate
 
 PR 创建后，页面下方会出现 `review-gate` 检查，并很快显示红色失败。这是正常的：审阅记录还没填，文章也还是草稿。
@@ -759,7 +778,9 @@ PR 创建后，页面下方会出现 `review-gate` 检查，并很快显示红�
 2. 勾选 `Require status checks to pass`，点 Add checks，输入 `review-gate`，在搜索结果中选中它。
 3. 页面底部点 Save changes。
 
-以后所有 PR 都必须通过 review-gate 才能合并。这一步只需做一次。
+以后所有 PR 都必须通过 review-gate 才能合并。这一步只需做一次，但千万不要跳过：不设置的话，检查失败的 PR 也能合并。
+
+验证方法：回到这个 PR 页面刷新，合并按钮应变成灰色，并提示 `Required statuses must pass before merging` 之类的文字。看到这个提示说明设置生效了。
 
 ### 11.5 阅读草稿
 
@@ -793,8 +814,15 @@ AI 可能编造数据、引用和链接，必须逐项认真检查：
 | 事实与来源 | 文中的数据、结论是否正确？`sources` 里的每个链接都要亲手打开，确认真实存在并且支持文中说法 |
 | 读者价值 | 对目标读者有没有实际帮助？有没有空话、套话、重复堆砌关键词 |
 | 语气 | 是否客观、友好、符合网站风格？有没有夸大宣传 |
-| 链接 | 正文里的每个链接都能打开，指向正确的页面 |
+| 链接 | 正文里的每个链接都能打开，指向正确的页面。推广链接只推荐你真正用过或核实过的商品，不要让 AI 编造商品链接；用的联盟平台不在 `AFFILIATE_HOSTS` 里时先加进去（15.8），否则页面不会显示披露提示 |
 | 标题 | 标题是否准确反映内容，没有夸张或误导 |
+
+AI 草稿里常见、需要重点检查的问题：
+
+- 来源的访问日期是编的：`sources` 里每项的 `accessedDate` 常被 AI 写成一个过去的日期，而实际上没人在那天访问过。你亲自打开核对后，把它改成核对当天的日期，如 `"2026-09-28T00:00:00Z"`。
+- 正文第一行重复了标题：页面会自动把 `title` 显示为大标题。如果正文开头还有一行 `# 标题`，页面上会出现两个相同的大标题，删掉正文里那一行即可。
+- 平台价格、免费额度、命令写法：这类信息变化快，要对照官方文档逐条核对，不确定的删掉或改成“以官方为准”。
+- 编造的数据和引用：找不到出处的数字、原话，一律删除。
 
 ### 11.7 在网页上修改文章
 
@@ -817,7 +845,7 @@ AI 可能编造数据、引用和链接，必须逐项认真检查：
 
 1. 回到 PR 的 Conversation 标签页。
 2. 在最上方的描述框右上角点 `⋯` → Edit。
-3. 找到五行审阅清单，把每行的 `[ ]` 改为 `[x]`，并在冒号后写下你检查了什么、结论是什么。
+3. 找到审阅清单，把前五行的 `[ ]` 改为 `[x]`，并在冒号后写下你检查了什么、结论是什么。第六行“图片与视频 `media`”只用于作品和作品照片（见 14.8），只发文章时保持原样即可。
 4. 点 Update comment。
 
 填写示例：
@@ -833,7 +861,7 @@ AI 可能编造数据、引用和链接，必须逐项认真检查：
 必须遵守的规则（否则 review-gate 不通过）：
 
 - 5 项都要勾选 `[x]`，每项只能出现一次；
-- 冒号后必须写内容，不能留空，也不能只写 `TODO`、`TBD`、`待填写`、`待定`、`-`、`...`；
+- 冒号后必须写内容，不能留空，也不能只写 `TODO`、`TBD`、`待填写`、`待定`、`-`、`...`。只勾 `[x]` 不写内容是最常见的失败原因；
 - 不要删除行中反引号括起来的英文名，如 `` `tone` ``，检查程序靠它识别每一项；
 - 写在 `<!--` 和 `-->` 之间的内容是注释，不会被计入。
 
@@ -851,18 +879,19 @@ draft: true
 draft: false
 ```
 
-然后提交到草稿分支。
+然后提交到草稿分支。如果你在 11.7 还有别的修改，可以和这一改动放在同一次提交里。
 
 这一步必须由你本人的 GitHub 账号完成。在网页上编辑就自动满足这个要求。由自动化账号（名字以 `[bot]` 结尾）做的这一改动会被 review-gate 拒绝。
 
 ### 11.10 合并发布
 
-1. 回到 Conversation 标签页，等待 review-gate 变成绿色对勾。修改描述或推送新提交后，它会自动重新运行。
-2. 请协作者批准：对方打开 PR → Files changed → 右上角 Review changes → 选 Approve → Submit review。单人方案二可跳过这一步。
-3. 点绿色的 Merge pull request → Confirm merge。
-4. 可以点 Delete branch 删除草稿分支，保持仓库整洁。
+1. 回到 Conversation 标签页，等待 review-gate 变成绿色对勾。修改描述或推送新提交后，它会自动重新运行。review-gate 不是绿色时，不要想办法绕过，按 16.2 修好再合并。
+2. 合并前最后确认一遍：Files changed 里文章的 `draft` 是 `false`。
+3. 请协作者批准：对方打开 PR → Files changed → 右上角 Review changes → 选 Approve → Submit review。单人方案二可跳过这一步。
+4. 点绿色 Merge pull request 按钮旁的小箭头，选 `Create a merge commit`，再点 Merge pull request → Confirm merge。不要选 Squash and merge 或 Rebase and merge，否则本地仓库之后同步时容易出现冲突。
+5. 可以点 Delete branch 删除草稿分支，保持仓库整洁。
 
-合并后，Actions 中会自动出现新的 “Deploy static site” 运行。等它变绿，打开网站首页，就能看到你的第一篇文章了。
+合并后，Actions 中会自动出现新的 “Deploy static site” 运行。等它变绿，打开网站首页，就能看到你的第一篇文章了。如果部署成功但文章没出现，见 16.6。
 
 检查点：网站首页出现文章，点击能打开 `/articles/<slug>/` 页面。
 
@@ -874,13 +903,17 @@ draft: false
 
 ### 12.1 发布一篇新文章（速查）
 
+发布作品的速查见 14.11。
+
 1. Actions → Generate draft (manual) → Run workflow → 分支选 `main` → 填 5 项 → Run。
 2. 运行完成后打开 Summary 中的链接 → Create pull request。
-3. Files changed 中阅读并修改文章。
-4. 编辑 PR 描述，完成五项 `[x]` 审阅记录。
+3. Files changed 中阅读并修改文章（重点看 11.6 列出的常见问题）。
+4. 编辑 PR 描述，完成五项 `[x]` 审阅记录，冒号后都要写内容。
 5. 编辑文章，`draft: true` 改为 `draft: false`。
-6. review-gate 通过 → 协作者批准 → Merge pull request。
+6. review-gate 变绿 → 协作者批准 → Merge pull request（选 Create a merge commit）。
 7. 等 Deploy static site 完成，文章上线。
+
+第 6 步之前的任何一步没完成，都不要合并。
 
 ### 12.2 放弃一篇草稿
 
@@ -893,7 +926,9 @@ draft: false
 
 ### 12.3 重新生成的注意事项
 
-- 用完全相同的 5 个输入重新生成，会写入同一个分支、同一个文件。如果编辑已经在修改这篇草稿，重新生成会覆盖掉这些修改，并把 `draft` 恢复为 `true`。所以审阅开始后，不要用相同输入重新生成。
+- 用完全相同的 5 个输入重新生成，会写入同一个分支、同一个文件。如果编辑已经在修改这篇草稿，重新生成会用全新的内容覆盖掉这些修改，并把 `draft` 恢复为 `true`。所以审阅开始后，不要用相同输入重新生成。
+- 如果已经重新生成了，之前的审阅作废：要把新内容从头审一遍，重新改 `draft: false`。
+- 重新生成后，PR 页面上的 review-gate 不会自动重跑（自动化程序的推送不会触发检查），显示的还是旧结果，不代表当前内容。编辑一下 PR 描述或推送一次你自己的修改，它就会重新检查。
 - 想要一个不同的版本，请改一下选题或关键词。
 - 更换了 Prompt 版本或模型，会生成一个全新的草稿分支。
 
@@ -917,12 +952,53 @@ draft: false
 2. 选择 `Create a new branch for this commit and start a pull request` → Propose changes → Create pull request。
 3. 只删除文章的 PR 不需要填写审阅记录，review-gate 会显示“不适用”并通过。合并后文章从网站消失。
 
+下线作品见 14.10。
+
 不要用把 `draft` 改回 `true` 的方式下线。review-gate 要求 PR 中修改过的文章最终必须是 `draft: false`，这种 PR 无法通过检查。
 
 ### 12.6 怎么看花了多少钱
 
-- 每次生成运行的日志中会输出预估费用和调用次数：Actions → 某次运行 → `Generate and validate draft` 任务 → 展开 `Generate draft bundle` 步骤。
+- 每次生成运行的日志中会输出预估费用和调用次数：Actions → 某次运行 → `Generate and validate draft` 任务 → 展开 `Generate draft bundle` 步骤。作品起草在 `Generate and validate work draft` 任务的 `Generate work bundle` 步骤。
 - 实际扣费以模型服务商控制台的用量或账单页面为准（DeepSeek 在 <https://platform.deepseek.com/> 的用量信息中查看）。
+
+### 12.7 修改代码或配置文件（新建分支 + PR）
+
+设置分支保护后，任何修改都不能直接推送到 main。直接推送会被拒绝，报错类似：
+
+```text
+remote: error: GH013: Repository rule violations found for refs/heads/main.
+remote: - Changes must be made through a pull request.
+! [remote rejected] main -> main (push declined due to repository rule violations)
+```
+
+这是保护规则在正常工作，不是故障。本地改了代码（比如更新了工作流、Prompt、`compliance.md`）后，按下面的步骤提交：
+
+1. 在 PowerShell 或编辑器的终端里新建一个分支，名字自己取，如 `fix/update-config`：
+
+   ```powershell
+   git switch -c fix/update-config
+   ```
+
+   已经在 main 上提交过也没关系，新分支会带上这些提交。
+
+2. 推送这个分支（不是 main）：
+
+   ```powershell
+   git push -u origin fix/update-config
+   ```
+
+3. 打开仓库页面，顶部会出现黄色提示条 “fix/update-config had recent pushes”，点 Compare & pull request → Create pull request。
+4. 只改代码、没改文章、作品或作品照片的 PR，review-gate 会显示“不适用”并通过，描述里的审阅清单不用填。
+5. 按 11.10 第 4 步选 `Create a merge commit` 合并。
+6. 回到本地，同步 main 并删掉用完的分支：
+
+   ```powershell
+   git switch main
+   git pull
+   git branch -d fix/update-config
+   ```
+
+只改一两个文件时，也可以直接在 GitHub 网页上编辑，提交时选 `Create a new branch for this commit and start a pull request`，效果相同。
 
 ---
 
@@ -999,20 +1075,209 @@ sources:
 
 ---
 
-## 14. 进阶设置
+## 14. 作品集：发布一件手作作品
 
-### 14.1 修改网站名称和简介
+一件作品 = 你拍的照片 + 材料工具等信息 + 制作过程文字，可附一段视频。照片和事实都由你提供；AI 只能根据你的制作笔记起草文字（可选），而且看不到照片。
+
+```text
+① 本机：npm run ingest 导入照片（自动旋转、压缩、去除 GPS 等信息），生成作品文件和笔记模板
+        │
+② 本机：写制作笔记、填材料工具和每张照片的替代文本 → 推送到 work/<作品名> 分支
+        │
+③ （可选）GitHub：运行 “Generate work draft (manual)”，AI 根据笔记写简介、标签和正文
+        │
+④ 创建 PR → 六项审阅（多一项“图片与视频”）→ 本人改 draft: false → review-gate 变绿 → 合并
+        │
+⑤ 自动部署，作品出现在 /works/<作品名>/
+```
+
+本章需要第 6 章的本机环境（`npm ci` 已完成）。
+
+### 14.1 准备照片和视频
+
+- 选 3～10 张照片，第一张（或你指定的一张）做封面。封面最好是成品全貌，光线均匀、背景干净。
+- 支持 JPEG、PNG、WebP、TIFF。iPhone 的 HEIC 格式不支持：先在“照片”App 里导出为 JPEG，或把相机设置为“兼容性最佳”。
+- 把这件作品的照片单独放进一个文件夹，如 `D:\photos\tote-bag`。文件名决定顺序（`1.jpg`、`2.jpg`……按数字排序）。
+- 原图不要放进项目文件夹，也不要提交到 GitHub。
+- 视频不放进仓库：先上传到哔哩哔哩或 YouTube，记下视频编号。B 站是网址里 `BV` 开头的 12 位编号，如 `BV1xx411c7mD`；YouTube 是网址 `watch?v=` 后面的 11 位编号。只放你本人拍摄的视频。
+
+### 14.2 导入照片
+
+先想好作品名（slug），它就是网址的一部分：只用小写英文、数字和单个连字符，如 `tote-bag`、`pine-bookshelf`。
+
+在项目文件夹中执行（PowerShell）：
+
+```powershell
+npm run ingest -- --slug tote-bag --category sewing --title "帆布托特包" "D:\photos\tote-bag"
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `--slug` | 作品名，见上 |
+| `--category` | 分类，只能是 `3d-printing`（3D打印）、`sewing`（缝纫）、`woodworking`（木工）、`electronics`（电子DIY）、`handcraft`（手工）之一。分类可以改，见 15.6 |
+| `--title` | 作品标题，之后也能在文件里改 |
+| `--cover` | 可选，指定做封面的文件名，如 `--cover 3.jpg`；不填就用排在第一的照片 |
+| `--force` | 可选，重新导入同一作品时用，会替换已导入的照片（已写的 `notes.md` 会保留，但作品文件会重新生成） |
+
+命令做了这些事：
+
+- 按拍摄方向把照片转正，长边缩小到最多 2000 像素，保存为 JPEG；
+- 删除照片里的全部隐藏信息（EXIF、GPS 位置、相机序列号等），并再次检查确认已删除；
+- 照片存到 `src/assets/works/tote-bag/`，命名为 `cover.jpg`、`01.jpg`、`02.jpg`……；
+- 生成作品文件 `src/content/works/tote-bag.md`（`draft: true`）和制作笔记模板 `src/assets/works/tote-bag/notes.md`。
+
+命令结尾会打印下一步提示。
+
+### 14.3 填写作品文件和制作笔记
+
+用编辑器打开这两个文件。
+
+制作笔记 `notes.md`：按模板的小标题写为什么做、尺寸、步骤、踩过的坑、下次改进。只写你确定的事实，口语化也没关系。如果打算让 AI 起草文字，这里就是 AI 唯一的素材；`<!-- -->` 之间的提示文字不会发给 AI。笔记会和照片一起提交到仓库（公开仓库人人可见），不要写住址、电话等隐私。
+
+作品文件 `tote-bag.md` 的 front-matter，需要你填写或检查的字段：
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `title` | 是 | 作品标题 |
+| `description` | 是 | 一两句话简介，用于列表和分享卡片。导入时是“待填写”，可以留给 AI 写 |
+| `pubDate` | 是 | 发布时间，格式同 13.3，导入时自动填为当前时间 |
+| `slug` | 是 | 作品名，必须和文件名、照片文件夹名一致，不要改 |
+| `draft` | 是 | 保持 `true`，审阅完再改（14.9） |
+| `category` | 是 | 分类，见 14.2 |
+| `tags` | 否 | 标签，如 `["帆布", "包袋"]`。可以留给 AI 写 |
+| `cover`、`coverAlt` | 是 | 封面照片和它的替代文本 |
+| `gallery` | 否 | 其余照片。每张有 `src`（照片）、`alt`（替代文本，必填），可加 `caption`（显示在照片下方的说明） |
+| `materials`、`tools` | 否 | 材料、工具清单，如 `["10 安帆布 1 米", "棉布内衬 0.5 米"]`。每一项也可以写成带购买链接的 `{ name: "棉织带", url: "https://..." }`，默认按推广链接处理，见 15.8 |
+| `shop` | 否 | 这件作品的图纸、模型文件等自己的商品链接，如 `[{ label: "PDF pattern on Etsy", url: "https://..." }]`，见 15.8 |
+| `difficulty` | 否 | 难度：`"beginner"` 入门、`"intermediate"` 进阶、`"advanced"` 高阶。去掉行首 `#` 启用 |
+| `timeSpent` | 否 | 耗时，如 `"约 6 小时"` |
+| `video` | 否 | 视频，如 `{ provider: "bilibili", id: "BV1xx411c7mD", title: "制作过程" }`；`provider` 只能是 `bilibili` 或 `youtube` |
+| `status` | 否 | `"finished"` 已完成（默认）或 `"in-progress"` 制作中 |
+| `ai_assisted`、`model`、`prompt_version` | 否 | 手写作品不用填。让 AI 起草后会自动写入，页面底部会注明“文字由 AI 辅助起草” |
+| `sources` | 否 | 参考资料，格式同 13.3 |
+
+替代文本怎么写：用一句话说清楚照片里是什么，如“橙色帆布托特包正面平放，提手竖起”“缝纫机压脚下正在缝合的内衬口袋”。不要写“图片”“照片 1”。导入时所有替代文本都是“待填写”，**还是“待填写”的作品不能发布**（草稿阶段允许）。AI 看不到照片，所以替代文本只能你来写。
+
+正文（第二个 `---` 之后）：自己写，或者留空交给 AI（14.5）。正文规则同 13.3。
+
+### 14.4 推送到作品分支
+
+在 PowerShell 中执行（把 `tote-bag` 换成你的作品名）：
+
+```powershell
+git switch -c work/tote-bag
+git add src/assets/works/tote-bag src/content/works/tote-bag.md
+git commit -m "work: 帆布托特包 照片与笔记"
+git push -u origin work/tote-bag
+```
+
+分支名必须是 `work/` 加作品名，AI 起草工作流按这个名字找你的文件。之后在本机继续修改，`git add`、`git commit`、`git push` 即可（第一次之后 `git push` 不用再加参数）。
+
+### 14.5 （可选）让 AI 起草作品文字
+
+1. Actions → 左侧 `Generate work draft (manual)` → Run workflow。
+2. `Use workflow from` 保持 `Branch: main`。
+3. 填写：`work_slug` 填作品名（如 `tote-bag`）；`prompt_name` 和 `prompt_version` 保持默认的 `work-draft` 和 `1.0.0`。
+4. 点 Run workflow，等两个任务都变绿（通常 1～3 分钟）。
+
+AI 会根据你的笔记和材料、工具、照片说明，写出简介、标签和正文，由自动化账号提交到 `work/tote-bag` 分支。你填写的其他字段（标题、照片、替代文本、材料、视频等）原样保留，AI 改不了。运行页面的 Summary 里有创建 PR 的链接。
+
+注意：
+
+- 运行前先把本机修改全部推送上去；工作流读的是 GitHub 上 `work/<作品名>` 分支的内容。运行后要在本机继续改，先执行 `git pull` 拿到 AI 写的内容。
+- 笔记还是空模板时，工作流会拒绝运行（报 `notes.md is empty`）。
+- AI 遇到笔记里没说清的地方，会写成 `[待确认：缝份宽度]` 这样的标记。发布前要把每一处都核实改掉，否则 review-gate 不通过。
+- 想重写，可以改笔记后重新运行。每次重新运行都会覆盖正文、简介和标签，你在这三处的修改会丢失，所以先定好笔记、再精修文字。
+- 费用和文章生成相同，使用同一套模型配置（第 8 章）。
+
+不想用 AI，就跳过这一节，自己写好正文、简介和标签。
+
+### 14.6 本机预览
+
+推送前后都可以在本机看效果：
+
+```powershell
+npm run dev
+```
+
+打开 `http://localhost:4321/works/` 查看作品。草稿和格式不合规的作品不会显示。想预览草稿，临时把 `draft` 改成 `false` 再看，**看完改回 `true`，不要提交这个改动**。格式问题会显示在运行 `npm run dev` 的窗口里，形如 `[works] excluded src/content/works/tote-bag.md: coverAlt: ...`。
+
+### 14.7 创建 PR
+
+1. 打开 14.5 Summary 中的链接；没用 AI 的，到仓库页面点黄色提示条 `work/tote-bag had recent pushes` → Compare & pull request。
+2. 确认 `base: main` ← `compare: work/tote-bag`，标题写作品名，点 Create pull request。
+
+### 14.8 六项审阅
+
+在 Files changed 里阅读作品文件（照片可以在文件列表中点开查看），按 11.6 的五项审阅，再加第六项：
+
+| 审阅项 | 要检查什么 |
+| --- | --- |
+| 事实与来源 | AI 写的步骤、数字是否和你的笔记一致？有没有编造的内容？所有 `[待确认：…]` 都已核实改掉 |
+| 读者价值 | 别人能看懂你怎么做的吗 |
+| 语气 | 像你自己说话，没有夸张宣传 |
+| 链接 | 正文链接能打开；`materials`、`tools`、`shop` 里的链接指向正确的商品页，推广链接确实是你用过的那款，普通链接写了 `affiliate: false` |
+| 标题 | 标题准确 |
+| 图片与视频 `media` | 照片都是你本人拍的（或已获授权）；每张照片的替代文本都描述了照片内容，没有“待填写”；照片是用 `npm run ingest` 导入的；视频是你本人的作品 |
+
+按 11.7 在网页上修改，按 11.8 在 PR 描述中填写六项记录。第六项示例：
+
+```markdown
+- [x] 图片与视频 `media`：5 张照片均为本人拍摄，已用 ingest 导入，替代文本逐张核对；B 站视频为本人上传
+```
+
+review-gate 还会自动检查：
+
+- 每张新增或修改的照片都不含 EXIF、GPS、XMP 等隐藏信息，大小不超过 5 MiB，文件名只用小写英文、数字、`_`、`-`；
+- 作品引用的照片都存在；
+- 发布的作品里没有“待填写”的替代文本，也没有 `[待确认` 标记。
+
+只换了照片、没改作品文件的 PR，也必须填写第六项（其余五项可不填）。
+
+### 14.9 改为可发布并合并
+
+六项审阅完成后，编辑作品文件把 `draft: true` 改为 `draft: false` 并提交。这一步必须由你本人的账号完成（AI 起草工作流的提交不算）。之后按 11.10 等 review-gate 变绿、合并。部署完成后作品出现在：
+
+- 首页“最新作品”；
+- `/works/` 全部作品页（可按分类、难度、状态筛选）；
+- `/categories/<分类>/` 分类页，以及标签页；
+- 作品页 `/works/tote-bag/`，底部会列出同分类的其他作品。
+
+作品页的视频不会自动加载，访客点“播放视频”后才连接哔哩哔哩或 YouTube。分享作品链接到社交平台时，会自动带上封面图。
+
+合并后可以删除 `work/tote-bag` 分支。
+
+### 14.10 修改或下线作品
+
+- 修改文字或信息：和 12.4 相同，在 main 上编辑 `src/content/works/<作品名>.md`，新建分支并创建 PR，填写审阅记录（含第六项），保持 `draft: false`。
+- 增加或更换照片：在本机重新导入会覆盖整个作品文件，不推荐。更简单的做法是新建分支，把新照片放到一个临时文件夹，单独运行一次 `npm run ingest -- --slug tmp-photos --category sewing "<临时文件夹>"`，把生成的 `src/assets/works/tmp-photos/01.jpg` 等文件改名移到原作品文件夹（如 `src/assets/works/tote-bag/05.jpg`），删掉 `tmp-photos` 的照片文件夹和 `src/content/works/tmp-photos.md`，再在作品文件的 `gallery` 中加上新照片和替代文本。这样新照片同样去掉了隐藏信息。
+- 下线：删除 `src/content/works/<作品名>.md` 和 `src/assets/works/<作品名>/` 整个文件夹，通过 PR 合并。只删除文件的 PR 不需要审阅记录。不要用改回 `draft: true` 的方式下线（原因同 12.5）。
+
+### 14.11 发布一件作品（速查）
+
+1. `npm run ingest -- --slug <作品名> --category <分类> --title "<标题>" "<照片文件夹>"`
+2. 写 `notes.md`；在作品文件中填材料、工具、每张照片的替代文本（可选：难度、耗时、视频）。
+3. `git switch -c work/<作品名>` → `git add` → `git commit` → `git push -u origin work/<作品名>`。
+4. （可选）Actions → Generate work draft (manual) → `work_slug` 填作品名 → Run。
+5. 创建 PR，核对文字和 `[待确认]`，填写六项审阅记录。
+6. 本人把 `draft` 改为 `false` → review-gate 变绿 → 合并。
+
+---
+
+## 15. 进阶设置
+
+### 15.1 修改网站名称和简介
 
 编辑 `src/lib/site-meta.ts`：
 
 ```ts
-export const SITE_TITLE = 'Content Pipeline';            // 网站名称
-export const SITE_DESCRIPTION = '人工审阅后发布的静态内容博客。'; // 首页简介
+export const SITE_TITLE = 'DIY Maker Hub';    // 网站名称
+export const SITE_DESCRIPTION = '个人手作作品集：……'; // 首页简介，也用于搜索引擎和 RSS
 ```
 
 改引号里的文字，通过 PR 合并即可。只修改代码、不涉及文章的 PR 不需要填写审阅记录。
 
-### 14.2 修改 AI 写作指令（Prompt）
+### 15.2 修改 AI 写作指令（Prompt）
 
 写作指令在 `prompts/article-draft.md`，开头是名称和版本：
 
@@ -1033,7 +1298,7 @@ description: 为人工审阅生成一篇面向读者的博客文章草稿。
 
 `prompts/` 下只要有一个文件格式错误，所有生成都会失败，修改时要仔细检查。
 
-### 14.3 更换模型或服务商
+### 15.3 更换模型或服务商
 
 同一服务商换模型（例如从 `deepseek-flash` 换到 `deepseek-v4-pro`），改两处：
 
@@ -1052,13 +1317,13 @@ description: 为人工审阅生成一篇面向读者的博客文章草稿。
 
 为什么要改两个地方？GitHub 变量谁有仓库设置权限就能改，而 `compliance.md` 的修改必须经过 PR 审阅、有历史记录。要求两边一致，意味着单改变量不能让程序把你的文章和密钥发到未经审阅的地址。
 
-### 14.4 绑定自己的域名
+### 15.4 绑定自己的域名
 
 1. Cloudflare 控制台 → Workers & Pages → 点你的项目 → Custom domains → Set up a custom domain，按提示添加域名并完成 DNS 设置。
 2. 生效后，把 GitHub Variable `SITE_URL` 改为 `https://<你的域名>`。
 3. 下一次部署后，RSS、sitemap 等中的网址就会使用新域名。
 
-### 14.5 在本机检查审阅记录
+### 15.5 在本机检查审阅记录
 
 提交前想先确认审阅记录格式是否正确，可以在本机运行检查（需完成第 6 章）：
 
@@ -1071,13 +1336,97 @@ description: 为人工审阅生成一篇面向读者的博客文章草稿。
    python -m content_pipeline.review_gate --base origin/main --head HEAD --body-file "$env:USERPROFILE\Desktop\pr-body.md"
    ```
 
-显示 `passed` 或 `not applicable` 表示通过；否则会逐条列出问题，对照 15.2 处理。
+显示 `passed` 或 `not applicable` 表示通过；否则会逐条列出问题，对照 16.2 处理。检查会同时覆盖 PR 中的作品和作品照片（含照片隐藏信息检查）。
+
+### 15.6 增加或修改作品分类
+
+分类定义在 `src/lib/categories.ts`：
+
+```ts
+{ slug: 'sewing', label: '缝纫', description: '布艺、服装与包袋。' },
+```
+
+- `slug` 写在作品文件的 `category` 里，也是分类页网址 `/categories/<slug>/`，只用小写英文、数字和连字符；`label` 是显示名称；`description` 显示在分类页。
+- 增加分类：照格式加一行。改名：只改 `label` 和 `description`。不要改已有作品在用的 `slug`，否则这些作品会因分类无效而不显示。
+- 同时修改 `content_pipeline/work.py` 里的 `CATEGORIES`，两边的 slug 和 label 必须一致（测试会检查，不一致时 `npm run test:py` 失败）。
+- 通过 PR 合并。
+
+### 15.7 修改“关于”页面
+
+编辑 `src/pages/about.astro`，把里面的介绍文字改成你自己的手艺背景、联系方式（建议只留公开的社交账号，不要写手机号和住址），通过 PR 合并。
+
+关于页底部的 “My shops” 和 “Support my work” 区块不在这个文件里改，它们来自 `src/lib/monetization.ts`，见 15.8。
+
+### 15.8 推广链接、“支持我”、“购买图纸”和统计
+
+设置都在 `src/lib/monetization.ts`，改完通过 PR 合并。这些区块的文字是英文（面向英文读者），集中在同一文件的 `MONETIZATION_TEXT` 里，可以直接改。
+
+**材料和工具的推广链接。** 在作品文件里把某一项写成对象：
+
+```yaml
+materials:
+  - "10 安帆布 1 米"                                   # 普通文字，不带链接
+  - { name: "Cotton webbing", url: "https://www.amazon.com/dp/..." }   # 推广链接
+tools:
+  - { name: "Rotary cutter", url: "https://example.com/...", affiliate: false }  # 普通链接
+```
+
+- 网址必须是 `https://` 开头的完整地址，两侧 schema 和 review-gate 都会检查。
+- 带链接的项默认是推广链接，页面上输出 `rel="sponsored nofollow"`，并在旁边标注 “(affiliate link)”；写 `affiliate: false` 则是普通链接。
+- 文章和作品正文里指向 `AFFILIATE_HOSTS`（默认是 Amazon 各站点、amzn.to、Awin、ShareASale、Rakuten、CJ）的链接会被自动加上同样的 `rel`。用了别的联盟平台，就把它的域名加进去。
+- 页面只要有推广链接，标题下方就会自动显示披露提示，并链接到 `/disclosure/`。页脚每页都有这个披露页的链接。
+- 加入 Amazon Associates 后，把 `AMAZON_ASSOCIATE` 改为 `true`，Amazon 要求的声明会出现在页脚、披露页和每条提示里。
+- AI 起草作品文字时只会收到材料和工具的名称，看不到任何链接。
+
+**正文里的推广链接。** 文章和作品正文照常写 Markdown 链接即可，例如 `I printed it with [this PLA](https://amzn.to/xxxx).`。只要域名在 `AFFILIATE_HOSTS` 里，构建时就会自动加上 `rel`，页面也会显示披露提示。
+
+**“购买图纸”。** 作品文件里的 `shop` 列出这件作品自己的商品（图纸、STL 文件、材料包）：
+
+```yaml
+shop:
+  - { label: "Tote bag PDF pattern on Etsy", url: "https://www.etsy.com/listing/..." }
+```
+
+它显示在作品正文和视频下方的 “Get the pattern” 区块。没填 `shop` 的作品显示全站店铺 `SHOP_LINKS`。关于页和披露页也会显示 `SHOP_LINKS`。这些是你自己的商品，不算推广链接，不会显示披露提示。
+
+**“支持我”和全站店铺。** 在 `src/lib/monetization.ts` 里把空列表 `[]` 改成你的链接：
+
+```ts
+export const SUPPORT_LINKS: readonly ExternalLink[] = [
+  { label: 'Buy me a coffee on Ko-fi', url: 'https://ko-fi.com/yourname' },
+];
+
+export const SHOP_LINKS: readonly ExternalLink[] = [
+  { label: 'Sewing patterns on Etsy', url: 'https://www.etsy.com/shop/yourshop' },
+];
+```
+
+`SUPPORT_LINKS` 显示在关于页、披露页和每个作品页底部的 “Support my work” 区块。列表留空时，对应区块不显示。网址同样必须以 `https://` 开头，`npm test` 会检查，不合规时部署前的测试就会失败。
+
+**免 Cookie 统计（Cloudflare Web Analytics）。**
+
+1. 在 Cloudflare 后台 Analytics & Logs > Web Analytics 添加站点，复制代码片段里的 `token` 值。
+2. 在 GitHub 仓库 Settings > Secrets and variables > Actions > Variables 新建 variable `CF_ANALYTICS_TOKEN`，值为这个 token。它会出现在网页源码里，本来就是公开的，所以存为 variable 而不是 secret。
+3. 下次部署后每个页面都会加载统计脚本，披露页的隐私说明也会自动改成“使用了 Cloudflare Web Analytics”。不设置就不加载任何统计脚本。
+4. 统计数据在 Cloudflare 后台 Web Analytics 页面查看，通常几分钟后就有数据。
+
+本机预览默认不加统计脚本。想在本机确认脚本已加入，可以临时设置变量后构建，再在 `dist/index.html` 里搜索 `cloudflareinsights`：
+
+```powershell
+$env:PUBLIC_CF_ANALYTICS_TOKEN = "<你的 token>"
+npm run build
+Remove-Item Env:PUBLIC_CF_ANALYTICS_TOKEN
+```
+
+如果 Cloudflare 已经自动注入了统计脚本（在 Pages 项目里开启了 Web Analytics，或者域名走了 Cloudflare 代理并开启了自动注入），就关掉那边的自动注入，或者不设置这个变量，以免同一次访问被统计两次。
+
+披露页（`src/pages/disclosure.astro`）是一个起点，不是法律意见。请按你实际加入的联盟计划核对、修改其中的说法。
 
 ---
 
-## 15. 故障排查
+## 16. 故障排查
 
-### 15.0 怎么看错误信息
+### 16.0 怎么看错误信息
 
 1. 仓库顶部 Actions，点红色叉号的运行记录。
 2. 点红色叉号的任务。
@@ -1085,7 +1434,7 @@ description: 为人工审阅生成一篇面向读者的博客文章草稿。
 
 错误信息只显示出错的字段名或配置名，不会显示密钥内容，可以放心截图求助（截图前仍请确认画面中没有密钥）。
 
-### 15.1 生成草稿失败
+### 16.1 生成草稿失败
 
 | 错误信息或现象 | 原因与解决 |
 | --- | --- |
@@ -1093,7 +1442,7 @@ description: 为人工审阅生成一篇面向读者的博客文章草稿。
 | `Run this workflow from the default branch` | 触发时没有选 `main` 分支，重新触发并选择 `main` |
 | 提到 `topic`、`audience`、`keywords`、`prompt_name`、`prompt_version` | 该输入为空、超长或格式不对，按 11.1 表格修改 |
 | `prompt not found: 名称@版本` | Prompt 名称或版本填错，或新版本还没合并到 main |
-| `invalid prompt file` 或 `duplicate prompt` | `prompts/` 下有格式错误或版本重复的文件，见 14.2 |
+| `invalid prompt file` 或 `duplicate prompt` | `prompts/` 下有格式错误或版本重复的文件，见 15.2 |
 | `missing configuration:` 后列出 `MODEL_GATEWAY`、`MODEL_ID`、`MODEL_BASE_URL`、`MODEL_GATEWAY_API_KEY` 等名称 | 对应的 Secret 或 Variable 没添加，或名字拼错。对照 8.2、8.3 逐个核对 |
 | `invalid configuration: MODEL_BASE_URL` | 地址格式不对：必须以 `https://` 开头，不能含空格、`?` 或 `#` |
 | `configuration does not match docs/compliance.md` 后列出 `MODEL_GATEWAY`、`MODEL_ID` 或 `MODEL_BASE_URL` | GitHub 变量与 `compliance.md` 登记的不一致。`MODEL_BASE_URL` 加上 `/chat/completions` 后必须与 `model_endpoint` 一字不差，按 8.5 核对 |
@@ -1110,7 +1459,7 @@ description: 为人工审阅生成一篇面向读者的博客文章草稿。
 | `Generated draft is identical to the Default_Branch` | 生成的文章与 main 上已有文件完全相同，无需审阅 |
 | 运行一直显示排队 | 前一个生成任务还没结束，等待即可 |
 
-### 15.2 审阅检查 review-gate 不通过
+### 16.2 审阅检查 review-gate 不通过
 
 | 错误信息 | 解决 |
 | --- | --- |
@@ -1122,26 +1471,31 @@ description: 为人工审阅生成一篇面向读者的博客文章草稿。
 | `no draft: true -> false transition found` | PR 历史中没有“先 true 后 false”的过程，见 13.1 |
 | `committed by automation` | 改为 `false` 的那次提交不是你本人做的。在网页上把它改回 `true` 提交，再改为 `false` 提交一次 |
 | 提到 `pubDate`、`slug`、`sources` 等字段 | front-matter 格式错误，对照 13.3 修改 |
+| 你已经修好了，PR 页面上的 review-gate 还是红的 | 显示的可能是旧结果（比如草稿被重新生成过，见 12.3）。编辑一下 PR 描述并保存，或推送一次修改，让它重新检查 |
+| 合并按钮是灰的，提示 `Required statuses must pass` | 这是 11.4 的设置在起作用：review-gate 没通过就不能合并。按上面各行修好 |
+| 合并按钮是灰的，提示需要批准（`review required`） | GitHub 不允许批准自己的 PR，见 10.3 |
 
-### 15.3 部署失败
+### 16.3 部署失败
 
 | 错误信息或现象 | 原因与解决 |
 | --- | --- |
 | 合并后 Actions 中没有出现 Deploy static site | 默认分支不是 `main`，按 5.4 改名 |
+| `Install locked dependencies` 步骤失败，日志里有 `EBADENGINE`、`Unsupported engine` | 部署用的 Node.js 版本低于依赖包的要求。把 `.github/workflows/deploy.yml` 中 `node-version` 改为日志里 `required` 要求的版本或更高（当前为 `24.12.0`），按 12.7 提交 |
 | `SITE_URL must be set` | Variable `SITE_URL` 没填，或不是 `https://` 开头 |
 | `CLOUDFLARE_PAGES_PROJECT is missing` | Variable 没填，或项目名含大写字母、空格 |
 | `Project not found` | Pages 项目没创建，或名字与 Variable 不一致。按 7.1 用 `pages project list` 核对 |
 | `Authentication error` 或 `code: 10000` | Token 权限不对或 Account ID 错误。检查 7.3 的权限设置，重新创建 Token 并更新 production 环境中的两个 Secret |
 | Deploy 任务提示环境不允许部署 | production 环境的部署分支规则不是 `main`，见 8.4 |
+| `PUBLIC_CF_ANALYTICS_TOKEN must be a Cloudflare Web Analytics site token` | Variable `CF_ANALYTICS_TOKEN` 填错了（多了引号、空格或复制了整段代码）。只填代码片段里 `token` 后面引号中的那串字符，或删除这个变量关闭统计，见 15.8 |
 | `Duplicate published slug` | 两篇已发布文章的 `slug` 相同，修改其中一篇 |
 | `Tags ... share slug` | 两个写法不同的标签生成了相同的网址，统一标签写法 |
 | `npm test` 失败 | 有人修改了代码导致测试不通过，在本机运行 `npm test` 查看详情 |
-| 部署成功但文章没出现 | 检查 `draft` 是否为 `false`、日期是否带双引号并符合格式、链接是否都是 `https://`。格式不对的文章会被悄悄排除。可在本机合并后的 main 上运行 `npm run dev` 检查 |
+| 部署成功但文章没出现 | 见 16.6 |
 | 网站显示旧内容 | 浏览器缓存，按 `Ctrl + F5` 强制刷新 |
 
 部署失败时不会影响线上网站，线上会继续显示上一次成功部署的内容。
 
-### 15.4 本机操作问题
+### 16.4 本机操作问题
 
 | 现象 | 解决 |
 | --- | --- |
@@ -1149,34 +1503,101 @@ description: 为人工审阅生成一篇面向读者的博客文章草稿。
 | `npm ci` 报 `Unsupported engine` 或 `EBADENGINE` | Node.js 版本低于 22.19，重新安装 LTS 版本 |
 | 激活 `.venv` 时提示禁止运行脚本 | 执行 6.1 中的 `Set-ExecutionPolicy` 命令 |
 | 运行 Python 命令提示 `No module named ...` | 没有激活 `.venv`，先执行 `.\.venv\Scripts\Activate.ps1` |
-| `git push` 被拒绝，提示 `protected branch` | main 已受保护，这是正常的。新建分支推送后创建 PR |
+| `git push` 被拒绝，提示 `GH013: Repository rule violations`、`Changes must be made through a pull request` 或 `protected branch` | main 已受保护，这是正常的。按 12.7 新建分支推送，再创建 PR 合并 |
+| `git push` 或 `git fetch` 提示 `Failed to connect to github.com port 443` | 网络连不上 GitHub。检查网络或代理设置后重试；编辑器自带的 Git 功能如果能连上，可以改用它推送 |
+| `git pull` 后提示冲突（`CONFLICT`） | 本地和 GitHub 上都改了同一个文件。不确定怎么处理时先别继续操作，执行 `git merge --abort` 退回原状，再找人帮忙 |
 | `git push` 反复要求登录 | 在弹窗中选择浏览器登录；或打开 Windows“凭据管理器”删除旧的 github.com 凭据后重试 |
 | `cd` 进入路径失败 | 路径中有空格或中文时，用英文双引号把路径括起来 |
 
-### 15.5 撤销一次发布
+### 16.5 撤销一次发布
 
 最稳妥的方式：打开当初合并的 PR，点页面下方的 Revert 按钮，会自动生成一个撤销 PR，按正常流程合并即可。
 
+Revert 会把那次合并带进来的文件整个删掉。之后想重新发布这篇文章，见 16.6 的情况 C。
+
 Cloudflare 控制台的项目页面也能回滚到之前的部署，但这样线上内容和仓库不一致，下次部署时会被覆盖，只适合应急。
+
+### 16.6 PR 合并了、部署也成功了，文章却没上线
+
+先确认 main 上的文章是什么状态：仓库首页（分支选 `main`）→ `src/content/articles/`。然后对照下面三种情况处理。
+
+情况 A：文件在，但 `draft` 还是 `true`
+
+原因：还没把 `draft` 改为 `false` 就合并了 PR。这篇文章没有经过完整审阅，现在不会显示在网站上，所以不用急着撤销。补救方法：
+
+1. 在 main 上打开这篇文章，点铅笔图标编辑。
+2. 按 11.6 把文章完整审阅一遍，需要改的地方一起改掉，最后把 `draft: true` 改为 `draft: false`。
+3. Commit changes，选择 `Create a new branch for this commit and start a pull request` → Propose changes → Create pull request。
+4. 在新 PR 的描述里完成五项审阅记录，review-gate 变绿后合并。
+
+情况 B：你把 `draft` 改成了 `false`，但是在 PR 合并之后才改的
+
+原因：PR 合并后，再往草稿分支提交的修改不会进入 main。main 上的文章仍然是 `draft: true`。按情况 A 的方法，从 main 重新改一次。
+
+情况 C：文件根本不在
+
+可能的原因：
+
+- PR 没合并，还开着或被关闭了：打开 PR 页面确认。
+- 合并后又被 Revert 撤销了：到仓库 Pull requests → Closed 里找标题以 `Revert` 开头的 PR。
+
+要重新发布，可以在原来的草稿分支上重新创建 PR：点仓库顶部 Pull requests → New pull request，`base` 选 `main`，`compare` 选那个 `draft/...` 分支，然后按 11.5～11.10 走完全部流程。如果草稿分支已经删除，就重新生成一篇。
+
+情况 D：文件在，`draft` 也是 `false`，但还是没显示
+
+说明文章格式不合规，被悄悄排除了。按 13.3 检查：日期是否带双引号并符合格式、`slug` 是否只有小写英文、数字和连字符、正文链接是否都是 `https://` 开头。可以在本机同步 main 后运行 `npm run dev` 确认。
+
+另外，部署需要 2～5 分钟。刚合并完就看不到文章是正常的，等 Deploy static site 变绿后再刷新（`Ctrl + F5`）。
+
+### 16.7 作品相关问题
+
+| 错误信息或现象 | 原因与解决 |
+| --- | --- |
+| `npm run ingest` 报 `--slug must be ...` 或 `--category must be one of` | 作品名或分类写错，见 14.2 |
+| `npm run ingest` 报 `already exists` | 这个作品已导入过。确实要重新导入就加 `--force`（作品文件会重新生成，先备份你填过的内容；`notes.md` 会保留） |
+| `npm run ingest` 报 `no JPEG/PNG/WebP/AVIF/TIFF photos` | 文件夹路径不对，或照片是 HEIC 格式。先导出为 JPEG，见 14.1 |
+| `npm run ingest` 报 `Cannot find package 'sharp'` | 没有安装依赖，在项目文件夹执行 `npm ci` |
+| Actions 中 Generate work draft 报 `couldn't find remote ref work/...` 或检出失败 | `work/<作品名>` 分支还没推送，或 `work_slug` 填错，见 14.4 |
+| `notes.md is empty` | 笔记还是空模板，先写制作笔记再运行 |
+| `has draft: false; only drafts can be generated` | 作品已改为可发布，AI 不再起草。要重写就先改回 `true` |
+| `human-owned fields differ` 或 `stable_key does not match` | 工作流运行期间你又推送了修改。等运行结束，重新运行一次 |
+| 推送 AI 文字时报 `rejected`（non-fast-forward） | 同上，你在 AI 运行期间推送了新提交。重新运行工作流即可 |
+| review-gate：`contains photo metadata (EXIF...)` | 这张照片带有隐藏信息（可能含 GPS 位置），不是用 `npm run ingest` 导入的。删除它，按 14.10 重新导入 |
+| review-gate：`file name must be lowercase ...` 或 `exceeds 5 MiB` | 照片文件名有大写、空格、中文，或照片太大。用 `npm run ingest` 导入 |
+| review-gate：`coverAlt` / `gallery.N.alt`：`placeholder not allowed` | 还有“待填写”的替代文本，逐张写好，见 14.3 |
+| review-gate：`body: still contains "[待确认…]"` | 正文里还有 AI 留下的待确认标记，核实后改写 |
+| review-gate：`image not found in the pull request head` | 作品引用的照片不存在：文件名写错或照片没提交（`git add` 漏了文件夹） |
+| review-gate：`review.media: review record is missing` | 涉及作品或照片的 PR 必须填第六项，见 14.8 |
+| 合并后作品没出现在网站上 | 按 16.6 的方法排查；作品文件在 `src/content/works/`，常见原因是替代文本、`category` 或照片文件名不合规。本机 `npm run dev` 窗口会显示 `[works] excluded ...` 及原因 |
+| 作品页没有视频播放框，只有“在哔哩哔哩观看”链接 | 浏览器禁用了 JavaScript，属正常降级 |
+| review-gate 或 `[works] excluded`：`materials.N.url` / `tools.N.url` / `shop.N.url`：`must be an absolute HTTPS URL` | 链接必须是 `https://` 开头的完整网址，不能是 `http://`，也不能带 `用户名:密码@` |
+| `materials.N` / `tools.N`：`must be a non-empty string or an object with name and url` | 这一项格式不对。写成普通文字 `"帆布"`，或 `{ name: "帆布", url: "https://..." }`，见 15.8 |
+| `materials.N.name` / `shop.N.label`：`must be a non-empty string` | 带链接的项缺少显示文字：材料和工具用 `name`，`shop` 用 `label` |
+| `materials.N.price`、`shop.N.title` 等：`is not a Work_Schema field` | 写了不支持的键或拼错了键名。材料和工具只支持 `name`、`url`、`affiliate`，`shop` 只支持 `label`、`url` |
+| 推广链接旁边没有 “(affiliate link)”、页面没有披露提示 | 这一项写了 `affiliate: false`；或者是正文里的链接，而它的域名不在 `AFFILIATE_HOSTS` 中，见 15.8 |
 
 ---
 
-## 16. 安全与合规须知
+## 17. 安全与合规须知
 
 - 密钥只存放在 GitHub Secrets 中。不要写进代码、文章、PR 描述、聊天记录或截图。怀疑泄露时立即到模型服务商或 Cloudflare 删除旧密钥，创建新密钥并更新 GitHub。
 - 不要关闭分支保护，不要把任何人或应用加入 Bypass list，不要开启 “Allow GitHub Actions to create and approve pull requests”。
-- 所有 AI 生成的内容都必须经过五项人工审阅才能发布，不要为了省事批量跳过审阅。
+- review-gate 必须设为必需检查（11.4）。不要合并 review-gate 显示红色的 PR，也不要为了能合并而删掉这项检查。
+- 所有 AI 生成的内容都必须经过人工审阅（文章五项，作品六项）才能发布，不要为了省事批量跳过审阅。
+- 作品集只放你本人拍摄或已获授权的照片和视频。照片一律用 `npm run ingest` 导入，它会去掉 GPS 位置等隐藏信息；不要把手机原图直接复制进仓库，也不要提交原图文件夹。
+- 公开仓库里的 `notes.md`、照片、草稿人人可见，不要在其中写住址、电话、订单信息等隐私，也注意照片画面里是否露出门牌、快递单等。
 - 本项目明确禁止：规避 AI 检测或用 “humanizer” 改写、绕过平台限流、多账号、分散 IP、违反第三方服务条款的自动化操作、未经审阅的大规模分发、自动发布到其他平台。
 - 不要给项目添加数据库、Redis、任务队列、VPS、Docker、Ollama 等依赖。
+- 推广链接必须让读者看得出来：不要删掉自动显示的披露提示、“(affiliate link)” 标注和 `/disclosure/` 页面，也不要把推广链接写成 `affiliate: false` 来隐藏。品牌付费或免费送的产品，要在页面开头写明。面向美国读者时，这是 FTC 的要求，Amazon Associates 等联盟计划也有自己的披露条款，以各计划的最新条款为准。
 - 内容以读者价值和准确性为目标。AI 会编造数据和引用，事实类内容务必逐条核实。
 
 完整规则以 [docs/compliance.md](compliance.md) 为准，修改它必须经过 PR 审阅。技术细节可参考 [README](../README.md)。
 
 ---
 
-## 17. 附录：配置总表与常用命令
+## 18. 附录：配置总表与常用命令
 
-### 17.1 配置总表
+### 18.1 配置总表
 
 | 名称 | 类型 | 在哪里设置 | 值从哪里来 |
 | --- | --- | --- | --- |
@@ -1192,10 +1613,11 @@ Cloudflare 控制台的项目页面也能回滚到之前的部署，但这样线
 | `BUDGET_MAX_COST_PER_RUN` | 仓库 Variable | 同上 | 至少为预估费用的 2 倍，DeepSeek 美元价格下建议 `0.04` |
 | `SITE_URL` | 仓库 Variable | 同上 | `https://<项目名>.pages.dev` 或自有域名 |
 | `CLOUDFLARE_PAGES_PROJECT` | 仓库 Variable | 同上 | 7.1 创建的项目名 |
+| `CF_ANALYTICS_TOKEN` | 仓库 Variable（可选） | 同上 | Cloudflare Web Analytics 站点 token（15.8）；不填则不加统计 |
 | `CLOUDFLARE_API_TOKEN` | production 环境 Secret | Settings → Environments → production | Cloudflare API Tokens（7.3） |
 | `CLOUDFLARE_ACCOUNT_ID` | production 环境 Secret | 同上 | Cloudflare Workers & Pages 页面（7.2） |
 
-### 17.2 常用命令
+### 18.2 常用命令
 
 | 命令 | 作用 |
 | --- | --- |
@@ -1204,6 +1626,25 @@ Cloudflare 控制台的项目页面也能回滚到之前的部署，但这样线
 | `git status` | 查看哪些文件被修改 |
 | `git pull` | 把 GitHub 上的最新内容同步到本机 |
 | `git switch <分支名>` | 切换到某个分支，如 `git switch main` |
+| `git switch -c <新分支名>` | 新建分支并切换过去（改代码前用，见 12.7） |
+| `git push -u origin <分支名>` | 把分支推送到 GitHub（不要推 main） |
+| `git branch -d <分支名>` | 删除本地用完的分支 |
 | `npm run dev` | 本地预览网站，`Ctrl + C` 停止 |
 | `npm run build` | 构建网站到 `dist` 文件夹 |
 | `npm run test:all` | 运行全部测试 |
+| `npm run ingest -- --slug <作品名> --category <分类> --title "<标题>" "<照片文件夹>"` | 导入一件作品的照片，生成作品文件和笔记模板（见 14.2） |
+| `npm run ingest -- --help` | 查看导入命令的全部参数 |
+
+### 18.3 作品相关文件
+
+| 位置 | 内容 |
+| --- | --- |
+| `src/content/works/<作品名>.md` | 作品文件（front-matter + 正文） |
+| `src/assets/works/<作品名>/` | 作品照片（`cover.jpg`、`01.jpg`……）和制作笔记 `notes.md` |
+| `src/lib/categories.ts` | 作品分类（与 `content_pipeline/work.py` 保持一致，见 15.6） |
+| `src/lib/site-meta.ts` | 网站名称和简介（15.1） |
+| `src/pages/about.astro` | “关于”页面（15.7） |
+| `src/lib/monetization.ts` | 推广链接域名、“支持我”和店铺链接、Amazon 声明开关、相关英文文案（15.8） |
+| `src/pages/disclosure.astro` | 推广链接披露页 `/disclosure/`（15.8） |
+| `prompts/work-draft.md` | AI 起草作品文字的写作指令 |
+| `.github/workflows/generate-work-draft.yml` | “Generate work draft (manual)” 工作流 |

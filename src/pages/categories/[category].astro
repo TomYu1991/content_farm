@@ -1,0 +1,33 @@
+---
+// Per-category page. Every configured category gets a page, even when empty,
+// so navigation links never 404.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import CategoryNav from '../../components/CategoryNav.astro';
+import WorkFilter from '../../components/WorkFilter.astro';
+import WorkGrid from '../../components/WorkGrid.astro';
+import { groupByCategory, type CategoryGroup } from '../../lib/production-works';
+import { getProductionWorks, type PublishedWork } from '../../lib/works';
+
+export async function getStaticPaths() {
+  const works = await getProductionWorks();
+  return groupByCategory(works).map((group) => ({ params: { category: group.slug }, props: { group, works } }));
+}
+
+interface Props {
+  group: CategoryGroup<PublishedWork>;
+  /** All published works, for the chip counts. */
+  works: PublishedWork[];
+}
+
+const { group, works } = Astro.props;
+---
+<BaseLayout title={group.label} description={group.description} wide>
+  <h1>{group.label}</h1>
+  <p class="lead">{group.description}</p>
+  <CategoryNav works={works} current={group.slug} />
+  <div data-work-filter-scope>
+    {group.works.length > 1 && <WorkFilter />}
+    <WorkGrid works={group.works} emptyText="这个分类还没有作品。" eagerCount={3} />
+    <p class="empty-state" data-work-filter-empty hidden>没有符合条件的作品。</p>
+  </div>
+</BaseLayout>

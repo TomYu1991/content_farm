@@ -1,8 +1,10 @@
 # Read-only Human_Editorial_Gate status check (Requirements 5.7–5.10, 7.3–7.6, 9.2, 9.5–9.7).
 #
-# Verifies that a PR touching src/content/articles/ records the five review items
-# (facts_and_sources, reader_value, tone, links, title) in its description and that
-# each article's draft was changed true -> false by a non-automation commit.
+# Verifies that a PR touching src/content/articles/ or src/content/works/ records the
+# five review items (facts_and_sources, reader_value, tone, links, title) in its
+# description and that each article's/work's draft was changed true -> false by a
+# non-automation commit. PRs touching works or src/assets/works/ also need the
+# media record, and every added/modified photo must carry no EXIF/GPS/XMP metadata.
 #
 # This workflow only reports pass/fail. It has read-only permissions and never
 # approves, merges, pushes or publishes. Make "review-gate" a required status check

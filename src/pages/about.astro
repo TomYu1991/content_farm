@@ -1,0 +1,35 @@
+---
+// About page. Edit the text below to introduce yourself and your crafts.
+// Support and shop links come from src/lib/monetization.ts (hidden while empty).
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ExternalLinks from '../components/ExternalLinks.astro';
+import { CATEGORIES, categoryPath } from '../lib/categories';
+import { DISCLOSURE_PATH, MONETIZATION_TEXT as T, SHOP_LINKS, SUPPORT_LINKS } from '../lib/monetization';
+import { SITE_TITLE } from '../lib/site-meta';
+---
+<BaseLayout title="关于" description={`关于 ${SITE_TITLE}。`}>
+  <h1>关于</h1>
+  <div class="prose">
+    <p>
+      {SITE_TITLE} 是我的个人手作作品集，记录每件作品从选材、制作到完成的过程，
+      也整理用过的材料、工具和踩过的坑。
+    </p>
+    <h2>我在做的门类</h2>
+    <ul>
+      {
+        CATEGORIES.map((c) => (
+          <li>
+            <a href={categoryPath(c.slug)}>{c.label}</a>：{c.description}
+          </li>
+        ))
+      }
+    </ul>
+    <h2>说明</h2>
+    <p>站内作品照片均为本人拍摄，转载请注明出处。部分文字由 AI 辅助起草，发布前经本人审阅，页面底部会注明。</p>
+    <p>
+      部分材料和工具链接是推广链接，详见 <a href={DISCLOSURE_PATH} lang={T.lang}>{T.disclosureTitle}</a>。
+    </p>
+  </div>
+  <ExternalLinks id="shops-heading" heading={T.shopsHeading} lead={T.shopLead} links={SHOP_LINKS} />
+  <ExternalLinks id="support-heading" heading={T.supportHeading} lead={T.supportLead} links={SUPPORT_LINKS} />
+</BaseLayout>

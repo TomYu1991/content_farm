@@ -1,0 +1,40 @@
+---
+/**
+ * Materials / tools of a work. Linked items are shop links; affiliate ones get
+ * rel="sponsored nofollow" and a visible "(affiliate link)" marker next to them.
+ */
+import { AFFILIATE_REL_ATTR, MONETIZATION_TEXT as T, isAffiliateSupply } from '../lib/monetization';
+import type { SupplyItem } from '../lib/work-schema';
+
+interface Props {
+  heading: string;
+  items: readonly SupplyItem[];
+}
+
+const { heading, items } = Astro.props;
+---
+{
+  items.length > 0 && (
+    <>
+      <h2 class="work-facts__heading">{heading}</h2>
+      <ul class="supply-list">
+        {items.map((item) =>
+          item.url === undefined ? (
+            <li>{item.name}</li>
+          ) : isAffiliateSupply(item) ? (
+            <li>
+              <a href={item.url} rel={AFFILIATE_REL_ATTR} class="affiliate-link">
+                {item.name}
+              </a>{' '}
+              <small class="affiliate-marker" lang={T.lang}>{T.affiliateMarker}</small>
+            </li>
+          ) : (
+            <li>
+              <a href={item.url}>{item.name}</a>
+            </li>
+          ),
+        )}
+      </ul>
+    </>
+  )
+}

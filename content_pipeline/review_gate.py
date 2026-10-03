@@ -19,8 +19,15 @@ The gate passes for a PR when every added or modified Content_File under
 
 and the PR description records all five review items from the
 Compliance_Checklist (事实与来源、读者价值、语气、链接、标题), each checked
-``[x]`` with a non-empty record, each exactly once. PRs that touch no
-Content_File are not subject to the gate.
+``[x]`` with a non-empty record, each exactly once.
+
+Portfolio works (``src/content/works/<slug>.md``) follow the same rules with
+Work_Schema instead of Article_Schema; a published work must reference only
+photos that exist in the PR head. PRs that add or change a work or any file
+under ``src/assets/works/`` additionally need the ``media`` record
+(图片与视频), and every added/modified asset must pass
+:func:`media_check.check_asset` (names, size, no EXIF/GPS/XMP metadata).
+PRs that touch none of these paths are not subject to the gate.
 
 Git author identities are self-declared, so check 3 is a guard against the
 generation workflow flipping ``draft`` itself; the binding control remains
@@ -37,7 +44,7 @@ import os
 import re
 import subprocess
 import sys
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -45,8 +52,16 @@ from typing import Any
 import yaml
 
 from .article import CONTENT_ROOT, validate_front_matter
-from .compliance import DEFAULT_POLICY_PATH, REQUIRED_REVIEW_ITEMS, REVIEW_ITEM_LABELS, load_policy
+from .compliance import (
+    ALL_REVIEW_ITEM_LABELS,
+    DEFAULT_POLICY_PATH,
+    MEDIA_REVIEW_ITEMS,
+    REQUIRED_REVIEW_ITEMS,
+    load_policy,
+)
 from .errors import FieldIssue, PipelineError
+from .media_check import check_asset
+from .work import WORK_ASSETS_ROOT, WORKS_ROOT, validate_work
 
 _HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
 _REVIEW_LINE = re.compile(
@@ -56,6 +71,13 @@ _REVIEW_LINE = re.compile(
 # Values that mean "not filled in yet" (compared case-insensitively after strip).
 _PLACEHOLDER_RECORDS = frozenset({"", "todo", "tbd", "待填写", "待定", "-", "...", "…"})
 _ARTICLE_FILE = re.compile(re.escape(CONTENT_ROOT) + r"/[^/]+\.md")
+_WORK_FILE = re.compile(re.escape(WORKS_ROOT) + r"/[^/]+\.md")
+# prompts/work-draft.md asks the model to mark unclear facts like "[待确认：缝份宽度]".
+UNRESOLVED_MARKER = "[待确认"
+
+
+def is_work_path(path: str) -> bool:
+    return _WORK_FILE.fullmatch(path) is not None
 
 
 # --------------------------------------------------------------------------
@@ -66,7 +88,7 @@ _ARTICLE_FILE = re.compile(re.escape(CONTENT_ROOT) + r"/[^/]+\.md")
 def render_review_checklist(review_items: Sequence[str] = REQUIRED_REVIEW_ITEMS) -> str:
     """Unfilled checklist lines in the format parsed by :func:`check_review_records`."""
     return "\n".join(
-        f"- [ ] {REVIEW_ITEM_LABELS.get(key, key)} `{key}`：" for key in review_items
+        f"- [ ] {ALL_REVIEW_ITEM_LABELS.get(key, key)} `{key}`：" for key in review_items
     ) + "\n"
 
 
@@ -165,24 +187,52 @@ def is_automation_author(
     )
 
 
+def _work_image_refs(meta: Mapping[str, Any]) -> list[tuple[str, str]]:
+    refs = [("cover", meta["cover"])]
+    refs.extend((f"gallery.{i}.src", item["src"]) for i, item in enumerate(meta.get("gallery", [])))
+    return refs
+
+
 def check_article_change(
-    change: ArticleChange, automation_authors: Iterable[str] = ()
+    change: ArticleChange,
+    automation_authors: Iterable[str] = (),
+    asset_exists: Callable[[str], bool] | None = None,
 ) -> list[FieldIssue]:
-    """Gate rules for one added/modified Content_File (see module docstring)."""
+    """Gate rules for one added/modified Content_File or work (see module docstring).
+
+    ``asset_exists`` answers whether a repo-relative path exists in the PR
+    head; when given, a published work must reference existing photos only.
+    """
     path = change.path
     meta = parse_front_matter(change.head_text)
     if meta is _MISSING:
         return [FieldIssue(f"{path}:front-matter", "missing or invalid YAML front-matter")]
-    schema_issues = validate_front_matter(meta)
+    work = is_work_path(path)
+    if work:
+        # Placeholder alt texts are fine while a work is a draft, never once published.
+        draft = meta.get("draft") if isinstance(meta, Mapping) else None
+        schema_issues = validate_work(path, meta, None, allow_placeholders=draft is True)
+    else:
+        schema_issues = validate_front_matter(meta)
     if schema_issues:
         return [FieldIssue(f"{path}:{i.field}", i.reason) for i in schema_issues]
     if meta["draft"] is not False:
         return [
             FieldIssue(
                 f"{path}:draft",
-                "is still true; after the five-item review an editor must set draft: false",
+                "is still true; after the review an editor must set draft: false",
             )
         ]
+    if work and UNRESOLVED_MARKER in change.head_text:
+        return [FieldIssue(f"{path}:body", f'still contains "{UNRESOLVED_MARKER}…]" notes for the maker')]
+    if work and asset_exists is not None:
+        missing = [
+            FieldIssue(f"{path}:{field}", "image not found in the pull request head")
+            for field, ref in _work_image_refs(meta)
+            if not asset_exists(f"{WORK_ASSETS_ROOT}/{ref}")
+        ]
+        if missing:
+            return missing
 
     if _draft_value(change.base_text) is False:
         return []  # edit of an already published article; no transition needed
@@ -217,14 +267,23 @@ def check_article_change(
 class GateResult:
     article_paths: tuple[str, ...]
     issues: tuple[FieldIssue, ...] = field(default=())
+    asset_paths: tuple[str, ...] = field(default=())
 
     @property
     def applicable(self) -> bool:
-        return bool(self.article_paths)
+        return bool(self.article_paths or self.asset_paths)
 
     @property
     def passed(self) -> bool:
         return not self.issues
+
+
+@dataclass(frozen=True)
+class AssetChange:
+    """An added or modified file under ``src/assets/works/`` (head bytes)."""
+
+    path: str
+    data: bytes = field(repr=False)
 
 
 def evaluate_review_gate(
@@ -233,16 +292,28 @@ def evaluate_review_gate(
     *,
     review_items: Sequence[str] = REQUIRED_REVIEW_ITEMS,
     automation_authors: Iterable[str] = (),
+    assets: Sequence[AssetChange] = (),
+    asset_exists: Callable[[str], bool] | None = None,
 ) -> GateResult:
-    """Pure gate decision for one PR description and its Content_File changes."""
+    """Pure gate decision for one PR description, its content and asset changes.
+
+    The five review items are required when any article or work changes;
+    ``media`` is required when any work or work asset changes.
+    """
     authors = tuple(automation_authors)
     paths = tuple(sorted(c.path for c in changes))
-    if not changes:
+    asset_paths = tuple(sorted(a.path for a in assets))
+    if not changes and not assets:
         return GateResult(article_paths=())
-    issues = check_review_records(body, review_items)
+    required: list[str] = list(review_items) if changes else []
+    if assets or any(is_work_path(c.path) for c in changes):
+        required.extend(k for k in MEDIA_REVIEW_ITEMS if k not in required)
+    issues = check_review_records(body, required)
     for change in sorted(changes, key=lambda c: c.path):
-        issues.extend(check_article_change(change, authors))
-    return GateResult(article_paths=paths, issues=tuple(issues))
+        issues.extend(check_article_change(change, authors, asset_exists))
+    for asset in sorted(assets, key=lambda a: a.path):
+        issues.extend(check_asset(asset.path, asset.data))
+    return GateResult(article_paths=paths, issues=tuple(issues), asset_paths=asset_paths)
 
 
 # --------------------------------------------------------------------------
@@ -273,20 +344,51 @@ def _show(repo: Path, commit: str, path: str) -> str | None:
     return None if data is None else data.decode("utf-8", errors="replace")
 
 
+def _merge_base(repo: Path, base: str, head: str) -> str:
+    return _git(repo, "merge-base", base, head).decode().strip()
+
+
+def _changed_paths(repo: Path, merge_base: str, head: str, *roots: str) -> list[str]:
+    """Added or modified (not deleted) paths under ``roots``."""
+    diff = _git(
+        repo, "diff", "--name-status", "-z", "--no-renames", merge_base, head, "--", *roots
+    ).decode("utf-8")
+    parts = [p for p in diff.split("\0") if p]
+    return [path for status, path in zip(parts[0::2], parts[1::2]) if status[0] in "AM"]
+
+
+def collect_asset_changes(repo: Path | str, base: str, head: str) -> list[AssetChange]:
+    """Added/modified files under ``src/assets/works/`` with their head bytes."""
+    repo = Path(repo)
+    merge_base = _merge_base(repo, base, head)
+    assets = []
+    for path in _changed_paths(repo, merge_base, head, WORK_ASSETS_ROOT):
+        data = _git(repo, "show", f"{head}:{path}", check=False)
+        if data is not None:
+            assets.append(AssetChange(path=path, data=data))
+    return assets
+
+
+def head_path_exists(repo: Path | str, head: str) -> Callable[[str], bool]:
+    """Predicate: does repo-relative ``path`` exist as a file in ``head``?"""
+
+    def exists(path: str) -> bool:
+        kind = _git(Path(repo), "cat-file", "-t", f"{head}:{path}", check=False)
+        return kind is not None and kind.strip() == b"blob"
+
+    return exists
+
+
 def collect_article_changes(repo: Path | str, base: str, head: str) -> list[ArticleChange]:
-    """Added/modified Content_Files between ``merge-base(base, head)`` and ``head``.
+    """Added/modified articles and works between ``merge-base(base, head)`` and ``head``.
 
     Uses only read-only git commands (merge-base, diff, log, show).
     """
     repo = Path(repo)
-    merge_base = _git(repo, "merge-base", base, head).decode().strip()
-    diff = _git(
-        repo, "diff", "--name-status", "-z", "--no-renames", merge_base, head, "--", CONTENT_ROOT
-    ).decode("utf-8")
-    parts = [p for p in diff.split("\0") if p]
+    merge_base = _merge_base(repo, base, head)
     changes: list[ArticleChange] = []
-    for status, path in zip(parts[0::2], parts[1::2]):
-        if status[0] not in "AM" or not _ARTICLE_FILE.fullmatch(path):
+    for path in _changed_paths(repo, merge_base, head, CONTENT_ROOT, WORKS_ROOT):
+        if not (_ARTICLE_FILE.fullmatch(path) or _WORK_FILE.fullmatch(path)):
             continue
         log = _git(
             repo, "log", "--reverse", "--format=%H%x1f%an%x1f%ae", f"{merge_base}..{head}", "--", path
@@ -341,22 +443,28 @@ def main(argv: Sequence[str] | None = None) -> int:
         else:
             body = os.environ.get(args.body_env, "")
         changes = collect_article_changes(args.repo, args.base, args.head)
+        assets = collect_asset_changes(args.repo, args.base, args.head)
+        result = evaluate_review_gate(
+            body,
+            changes,
+            review_items=policy.review_items,
+            automation_authors=args.automation_author,
+            assets=assets,
+            asset_exists=head_path_exists(args.repo, args.head),
+        )
     except (PipelineError, OSError) as exc:
         print(f"review gate error: {exc}", file=sys.stderr)
         return 2
 
-    result = evaluate_review_gate(
-        body,
-        changes,
-        review_items=policy.review_items,
-        automation_authors=args.automation_author,
-    )
     if not result.applicable:
-        print("review gate: no Content_File changes; gate not applicable")
+        print("review gate: no Content_File or work asset changes; gate not applicable")
         return 0
-    print("review gate: Content_Files in this PR: " + ", ".join(result.article_paths))
+    if result.article_paths:
+        print("review gate: Content_Files in this PR: " + ", ".join(result.article_paths))
+    if result.asset_paths:
+        print("review gate: work assets in this PR: " + ", ".join(result.asset_paths))
     if result.passed:
-        print("review gate: passed (five review records present, draft set to false by an editor)")
+        print("review gate: passed (review records present, draft set to false by an editor, assets clean)")
         return 0
     for issue in result.issues:
         print(f"review gate: {issue.describe()}", file=sys.stderr)

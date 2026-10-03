@@ -1,6 +1,7 @@
 import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { CONTENT_DIR } from './lib/article-schema';
+import { WORKS_CONTENT_DIR } from './lib/work-schema';
 
 /**
  * `articles` collection: every Markdown file under src/content/articles/.
@@ -22,4 +23,19 @@ const articles = defineCollection({
   }),
 });
 
-export const collections = { articles };
+/**
+ * `works` collection: portfolio works under src/content/works/. Same
+ * defensive approach: Work_Schema and photo existence are checked by
+ * `selectProductionWorks` (src/lib/production-works.ts), and photos are
+ * resolved from src/assets/works/ in src/lib/works.ts, so a broken work is
+ * excluded with a warning instead of failing the build.
+ */
+const works = defineCollection({
+  loader: glob({
+    pattern: '**/*.md',
+    base: `./${WORKS_CONTENT_DIR}`,
+    generateId: ({ entry }) => entry,
+  }),
+});
+
+export const collections = { articles, works };

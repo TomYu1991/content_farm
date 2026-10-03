@@ -86,6 +86,19 @@ forbidden_capabilities:
 - 只读校验：`.github/workflows/review-gate.yml`（`python -m content_pipeline.review_gate`）仅以 `contents: read`、`pull-requests: read` 权限读取 PR 描述与 Git 历史，校验五项记录齐全、文章 `draft: false`，且 `draft: true → false` 由非自动化提交完成；它只报告通过/失败，不批准、不合并、不发布。
 - 维护者应在默认分支保护规则中将 `review-gate` 设为必需状态检查，并要求至少一位人工批准。Git 作者身份可自行声明，因此分支保护与人工批准才是强制防线。
 
+### 3.1 作品与照片（图片与视频 `media`）
+
+作品集作品（`src/content/works/<slug>.md`）与文章适用同一闸门（五项审阅、人工 `draft: true → false`、人工合并），并额外要求第六项审阅：
+
+6. 图片与视频（`media`）：照片为作者本人拍摄或已获授权；每张照片的替代文本（`coverAlt`、`gallery[].alt`）描述了图片内容，没有“待填写”等占位；照片已去除 EXIF/GPS 等元数据；嵌入的视频为作者本人作品。
+
+凡新增或修改作品、或 `src/assets/works/` 下任何文件的 PR，都必须记录第六项。该项为固定要求，由 `content_pipeline.compliance.MEDIA_REVIEW_ITEMS` 定义，不在上方 front-matter 中配置，不能删除。
+
+- 照片只能由作者提交（`npm run ingest` 旋转、压缩并去除全部元数据），不经过生成工作流的草稿包。
+- `review-gate` 对 PR 中新增或修改的每个作品文件逐一检查：文件名与路径、大小（照片 ≤ 5 MiB）、格式（JPEG/PNG/WebP），且不含 EXIF、XMP、IPTC 或文本元数据块；发布的作品引用的照片必须存在。
+- 作品文字生成（`.github/workflows/generate-work-draft.yml`）只把作者的事实与 `notes.md` 发给模型；模型看不到照片，不写替代文本，只起草简介、标签和正文，并且只改写 `work/<slug>` 分支上的这一个作品文件。
+- 模型把笔记中不明确的事实标成 `[待确认：…]`；发布的作品中残留该标记时 `review-gate` 失败，作者须先核实并改写。
+
 ## 4. 禁止依赖（MVP）
 
 数据库、Redis、Postgres、pgvector、Prefect、任务队列、VPS、Docker、Ollama。

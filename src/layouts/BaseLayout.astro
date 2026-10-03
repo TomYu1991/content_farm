@@ -8,6 +8,8 @@ import '../styles/global.css';
 import { getSiteUrl } from '../lib/articles';
 import { renderHeadMeta, rssUrl, type MetaTag } from '../lib/discovery';
 import { SITE_DESCRIPTION, SITE_LANG, SITE_TITLE } from '../lib/site-meta';
+import { CF_BEACON_SRC, beaconConfig, resolveAnalyticsToken } from '../lib/analytics';
+import { AMAZON_ASSOCIATE, DISCLOSURE_PATH, MONETIZATION_TEXT as T } from '../lib/monetization';
 
 interface Props {
   /** Page-specific title; omitted on the home page. */
@@ -17,11 +19,26 @@ interface Props {
   canonicalUrl?: string;
   /** Extra `<meta>` tags (Open Graph etc.). */
   meta?: readonly MetaTag[];
+  /** Wide main column for image grids; text pages keep the reading measure. */
+  wide?: boolean;
 }
 
-const { title, description = SITE_DESCRIPTION, canonicalUrl, meta = [] } = Astro.props;
+const { title, description = SITE_DESCRIPTION, canonicalUrl, meta = [], wide = false } = Astro.props;
 const documentTitle = title ? `${title} | ${SITE_TITLE}` : SITE_TITLE;
 const feedUrl = rssUrl(getSiteUrl());
+
+const NAV = [
+  { href: '/', label: '首页' },
+  { href: '/works/', label: '作品' },
+  { href: '/categories/', label: '分类' },
+  { href: '/archive/', label: '文章' },
+  { href: '/tags/', label: '标签' },
+  { href: '/about/', label: '关于' },
+];
+const current = Astro.url.pathname.replace(/\/?$/, '/');
+const isCurrent = (href: string) => (href === '/' ? current === '/' : current.startsWith(href));
+// Cookie-free Cloudflare Web Analytics; only when the build sets the token.
+const analyticsToken = resolveAnalyticsToken(import.meta.env.PUBLIC_CF_ANALYTICS_TOKEN);
 ---
 <!doctype html>
 <html lang={SITE_LANG}>
@@ -32,27 +49,38 @@ const feedUrl = rssUrl(getSiteUrl());
     <Fragment set:html={renderHeadMeta({ description, canonicalUrl, meta })} />
     <link rel="alternate" type="application/rss+xml" title={SITE_TITLE} href={feedUrl} />
     <slot name="head" />
+    {analyticsToken && <script is:inline defer src={CF_BEACON_SRC} data-cf-beacon={beaconConfig(analyticsToken)}></script>}
   </head>
   <body>
     <a class="skip-link" href="#main">跳到正文</a>
     <header class="site-header">
-      <div class="container site-header__inner">
+      <div class="container container--wide site-header__inner">
         <a class="site-title" href="/">{SITE_TITLE}</a>
         <nav aria-label="主导航">
           <ul class="site-nav">
-            <li><a href="/">首页</a></li>
-            <li><a href="/archive/">归档</a></li>
-            <li><a href="/tags/">标签</a></li>
+            {
+              NAV.map((item) => (
+                <li>
+                  <a href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined}>
+                    {item.label}
+                  </a>
+                </li>
+              ))
+            }
           </ul>
         </nav>
       </div>
     </header>
-    <main id="main" class="container" tabindex="-1">
+    <main id="main" class:list={['container', { 'container--wide': wide }]} tabindex="-1">
       <slot />
     </main>
     <footer class="site-footer">
-      <div class="container">
-        <p>{SITE_TITLE} · <a href="/rss.xml">RSS</a></p>
+      <div class="container container--wide">
+        <p>
+          {SITE_TITLE} · <a href="/rss.xml">RSS</a> · <a href="/about/">关于</a> ·
+          <a href={DISCLOSURE_PATH} lang={T.lang}>{T.footerDisclosure}</a>
+        </p>
+        {AMAZON_ASSOCIATE && <p lang={T.lang}>{T.amazonStatement}</p>}
       </div>
     </footer>
   </body>

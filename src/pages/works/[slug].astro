@@ -1,0 +1,142 @@
+---
+// Work page: one static route per Production_Work_Set item.
+import { Image } from 'astro:assets';
+import { render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import TagLinks from '../../components/TagLinks.astro';
+import VideoEmbed from '../../components/VideoEmbed.astro';
+import WorkGallery from '../../components/WorkGallery.astro';
+import WorkGrid from '../../components/WorkGrid.astro';
+import AffiliateNotice from '../../components/AffiliateNotice.astro';
+import ExternalLinks from '../../components/ExternalLinks.astro';
+import SupplyList from '../../components/SupplyList.astro';
+import { MONETIZATION_TEXT as T, SHOP_LINKS, SUPPORT_LINKS, workHasAffiliateLinks } from '../../lib/monetization';
+import { relatedWorks } from '../../lib/production-works';
+import { categoryPath, getCategory } from '../../lib/categories';
+import { articleSeo } from '../../lib/discovery';
+import { formatDate } from '../../lib/listing';
+import { SITE_LANG, SITE_TITLE } from '../../lib/site-meta';
+import { DIFFICULTY_LABELS, STATUS_LABELS } from '../../lib/work-schema';
+import { getProductionWorks, socialImage, workImage, type PublishedWork } from '../../lib/works';
+
+export async function getStaticPaths() {
+  const works = await getProductionWorks();
+  return works.map((work) => ({
+    params: { slug: work.slug },
+    props: { work, related: relatedWorks(work, works) },
+  }));
+}
+
+interface Props {
+  work: PublishedWork;
+  related: PublishedWork[];
+}
+
+const { work, related } = Astro.props;
+const { data } = work;
+const { Content } = await render(work.entry);
+const hasBody = typeof work.entry.body === 'string' && work.entry.body.trim().length > 0;
+const category = getCategory(data.category);
+const seo = articleSeo(work, SITE_TITLE, SITE_LANG, await socialImage(work));
+
+const facts = [
+  category && { label: '分类', value: category.label, href: categoryPath(data.category) },
+  data.difficulty && { label: '难度', value: DIFFICULTY_LABELS[data.difficulty] },
+  data.timeSpent && { label: '耗时', value: data.timeSpent },
+  { label: '状态', value: STATUS_LABELS[data.status] },
+].filter((f): f is { label: string; value: string; href?: string } => Boolean(f));
+
+const hasAffiliateLinks = workHasAffiliateLinks(data, work.entry.body);
+// This work's own pattern/file links; otherwise the site-wide shops.
+const shopLinks = data.shop.length > 0 ? data.shop : SHOP_LINKS;
+---
+<BaseLayout title={seo.title} description={seo.description} canonicalUrl={seo.canonicalUrl} meta={seo.meta} wide>
+  <article class="work">
+    <header class="work-header">
+      <h1>{data.title}</h1>
+      <p class="article-meta">
+        发布于 <time datetime={data.pubDate}>{formatDate(data.pubDate)}</time>
+        {
+          data.updatedDate && (
+            <>
+              · 更新于 <time datetime={data.updatedDate}>{formatDate(data.updatedDate)}</time>
+            </>
+          )
+        }
+      </p>
+      <p class="lead">{data.description}</p>
+      {hasAffiliateLinks && <AffiliateNotice />}
+    </header>
+
+    <figure class="work-cover">
+      <Image
+        src={workImage(data.cover)}
+        alt={data.coverAlt}
+        widths={[640, 960, 1440, 1920]}
+        sizes="(min-width: 72rem) 68rem, 100vw"
+        loading="eager"
+        fetchpriority="high"
+      />
+    </figure>
+
+    <div class="work-layout">
+      <aside class="work-facts" aria-label="作品信息">
+        <dl>
+          {
+            facts.map((fact) => (
+              <div>
+                <dt>{fact.label}</dt>
+                <dd>{fact.href ? <a href={fact.href}>{fact.value}</a> : fact.value}</dd>
+              </div>
+            ))
+          }
+        </dl>
+        <SupplyList heading="材料" items={data.materials} />
+        <SupplyList heading="工具" items={data.tools} />
+        <TagLinks tags={data.tags} />
+      </aside>
+
+      <div class="work-main">
+        {
+          hasBody && (
+            <div class="prose">
+              <Content />
+            </div>
+          )
+        }
+        {data.video && <VideoEmbed video={data.video} poster={workImage(data.cover)} />}
+        <ExternalLinks id="shop-heading" heading={T.shopHeading} lead={T.shopLead} links={shopLinks} />
+      </div>
+    </div>
+
+    <WorkGallery items={data.gallery} />
+
+    <ExternalLinks id="support-heading" heading={T.supportHeading} lead={T.supportLead} links={SUPPORT_LINKS} />
+
+    {
+      related.length > 0 && category && (
+        <section class="related-works" aria-labelledby="related-heading">
+          <h2 id="related-heading">更多{category.label}作品</h2>
+          <WorkGrid works={related} headingLevel={3} />
+          <p><a href={categoryPath(data.category)}>查看全部{category.label}作品 →</a></p>
+        </section>
+      )
+    }
+
+    {
+      data.sources.length > 0 && (
+        <section class="sources" aria-labelledby="sources-heading">
+          <h2 id="sources-heading">参考</h2>
+          <ul>
+            {data.sources.map((source) => (
+              <li>
+                <a href={source.url} rel="noopener noreferrer">{source.title}</a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+    {data.ai_assisted && <p class="ai-note">本文文字由 AI 辅助起草，经作者审阅修改。</p>}
+  </article>
+</BaseLayout>
