@@ -1,0 +1,67 @@
+---
+// /disclosure/: affiliate, sponsorship and analytics disclosure (English market).
+// Linked from the footer on every page and from each affiliate notice.
+// Review this text against the programs you actually join; it is a starting
+// point, not legal advice.
+import BaseLayout from '../layouts/BaseLayout.astro';
+import ExternalLinks from '../components/ExternalLinks.astro';
+import { resolveAnalyticsToken } from '../lib/analytics';
+import { AMAZON_ASSOCIATE, MONETIZATION_TEXT as T, SHOP_LINKS, SUPPORT_LINKS } from '../lib/monetization';
+import { SITE_TITLE } from '../lib/site-meta';
+
+const analytics = resolveAnalyticsToken(import.meta.env.PUBLIC_CF_ANALYTICS_TOKEN) !== undefined;
+---
+<BaseLayout title={T.disclosureTitle} description={`How ${SITE_TITLE} earns money: affiliate links, own products and reader support.`}>
+  <div lang={T.lang}>
+    <h1>{T.disclosureTitle}</h1>
+    <div class="prose">
+      <p>
+        {SITE_TITLE} is a one-person maker portfolio. Every project on this site is something I built myself,
+        photographed myself and wrote up after reviewing it by hand.
+      </p>
+
+      <h2>Affiliate links</h2>
+      <p>
+        Some links to materials, tools and products are affiliate links. If you click one and buy something, the
+        retailer pays me a small commission. The price you pay is the same. Pages with affiliate links say so near
+        the top, and linked materials and tools are marked “{T.affiliateMarker}”.
+      </p>
+      {AMAZON_ASSOCIATE && <p><strong>{T.amazonStatement}</strong></p>}
+      <p>
+        Commissions never decide what I recommend. I list what I actually used for a project, including cheap or
+        non-affiliate options when they did the job. Affiliate links are marked <code>rel="sponsored"</code> for
+        search engines.
+      </p>
+
+      <h2>Sponsored content and free products</h2>
+      <p>
+        If a brand pays me or sends me a product for free, the page says so clearly at the top. I don't accept payment
+        for positive reviews.
+      </p>
+
+      <h2>My own products</h2>
+      <p>
+        Some projects link to patterns, templates or 3D files I sell. Those are my own products, and the money goes
+        straight to me.
+      </p>
+
+      <h2>Privacy and analytics</h2>
+      {
+        analytics ? (
+          <p>
+            I use Cloudflare Web Analytics to count page views. It sets no cookies, stores nothing on your device and
+            doesn't track you across sites. Affiliate partners may set their own cookies once you click through to
+            their sites.
+          </p>
+        ) : (
+          <p>
+            This site sets no cookies and runs no analytics. Affiliate partners may set their own cookies once you click
+            through to their sites.
+          </p>
+        )
+      }
+    </div>
+    <ExternalLinks id="shops-heading" heading={T.shopsHeading} lead={T.shopLead} links={SHOP_LINKS} />
+    <ExternalLinks id="support-heading" heading={T.supportHeading} lead={T.supportLead} links={SUPPORT_LINKS} />
+  </div>
+</BaseLayout>

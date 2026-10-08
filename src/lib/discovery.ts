@@ -9,10 +9,28 @@
  */
 import type { RSSOptions } from '@astrojs/rss';
 import { articleTags } from './listing';
-import { sortArticles, type ProductionArticle } from './production-articles';
+import { sortArticles } from './production-articles';
 import { resolveSiteUrl } from './site-url';
 
-type DiscoverableArticle = Pick<ProductionArticle, 'canonicalUrl' | 'data'>;
+/** Shape shared by published articles and works (both feed RSS, sitemap and SEO). */
+interface DiscoverableArticle {
+  canonicalUrl: string;
+  data: {
+    title: string;
+    description: string;
+    pubDate: string;
+    updatedDate?: string | undefined;
+    tags: readonly string[];
+  };
+}
+
+/** Absolute share image for Open Graph / Twitter cards. */
+export interface SeoImage {
+  url: string;
+  width: number;
+  height: number;
+  alt: string;
+}
 
 /**
  * Characters allowed by XML 1.0: #x9 | #xA | #xD | [#x20-#xD7FF] |
@@ -157,7 +175,12 @@ export interface ArticleSeo {
  * SEO / Open Graph metadata of an article page. Values are raw strings: the
  * layout renders them through Astro expressions, which HTML-escape them.
  */
-export function articleSeo(article: DiscoverableArticle, siteName: string, locale: string): ArticleSeo {
+export function articleSeo(
+  article: DiscoverableArticle,
+  siteName: string,
+  locale: string,
+  image?: SeoImage,
+): ArticleSeo {
   const { data, canonicalUrl } = article;
   const meta: MetaTag[] = [
     { kind: 'property', key: 'og:type', content: 'article' },
@@ -174,6 +197,16 @@ export function articleSeo(article: DiscoverableArticle, siteName: string, local
   for (const tag of articleTags(data.tags)) {
     meta.push({ kind: 'property', key: 'article:tag', content: tag.label });
   }
-  meta.push({ kind: 'name', key: 'twitter:card', content: 'summary' });
+  if (image !== undefined) {
+    meta.push(
+      { kind: 'property', key: 'og:image', content: image.url },
+      { kind: 'property', key: 'og:image:width', content: String(image.width) },
+      { kind: 'property', key: 'og:image:height', content: String(image.height) },
+      { kind: 'property', key: 'og:image:alt', content: image.alt },
+      { kind: 'name', key: 'twitter:image', content: image.url },
+      { kind: 'name', key: 'twitter:image:alt', content: image.alt },
+    );
+  }
+  meta.push({ kind: 'name', key: 'twitter:card', content: image ? 'summary_large_image' : 'summary' });
   return { title: data.title, description: data.description, canonicalUrl, meta };
 }

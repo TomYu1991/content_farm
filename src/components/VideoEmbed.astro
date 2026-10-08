@@ -1,0 +1,73 @@
+---
+/**
+ * Click-to-load video embed from a fixed allowlist of players.
+ *
+ * Nothing is requested from the video platform until the visitor presses
+ * play: the page ships a button (with the work cover as a poster), and the
+ * script swaps in the player iframe on click. Without JavaScript the plain
+ * link to the video page below still works.
+ *
+ * Only the validated video id (see work-schema.ts) is interpolated, so
+ * front-matter can never choose the iframe host.
+ */
+import type { ImageMetadata } from 'astro';
+import { Image } from 'astro:assets';
+import type { WorkVideo } from '../lib/work-schema';
+
+interface Props {
+  video: WorkVideo;
+  /** Poster shown on the play button (decorative; the button text labels it). */
+  poster?: ImageMetadata;
+}
+
+const { video, poster } = Astro.props;
+const id = encodeURIComponent(video.id);
+const player =
+  video.provider === 'bilibili'
+    ? {
+        embed: `https://player.bilibili.com/player.html?bvid=${id}&autoplay=1&high_quality=1`,
+        page: `https://www.bilibili.com/video/${id}/`,
+        name: '哔哩哔哩',
+      }
+    : {
+        embed: `https://www.youtube-nocookie.com/embed/${id}?autoplay=1`,
+        page: `https://www.youtube.com/watch?v=${id}`,
+        name: 'YouTube',
+      };
+---
+<section class="work-video" aria-labelledby="video-heading">
+  <h2 id="video-heading">制作视频</h2>
+  <div class="video-frame" data-video-embed={player.embed} data-video-title={video.title} hidden>
+    <button class="video-facade" type="button">
+      {poster && <Image class="video-facade__poster" src={poster} alt="" widths={[640, 960]} sizes="(min-width: 48rem) 42rem, 100vw" />}
+      <span class="video-facade__label">
+        <span class="video-facade__icon" aria-hidden="true">▶</span>
+        播放视频：{video.title}
+        <small>点击后才会加载{player.name}播放器</small>
+      </span>
+    </button>
+  </div>
+  <p class="work-video__link">
+    <a href={player.page} rel="noopener noreferrer">在{player.name}观看：{video.title}</a>
+  </p>
+</section>
+
+<script>
+  for (const frame of document.querySelectorAll<HTMLElement>('.video-frame[data-video-embed]')) {
+    const button = frame.querySelector<HTMLButtonElement>('.video-facade');
+    const src = frame.dataset.videoEmbed;
+    if (!button || !src) continue;
+    frame.hidden = false; // the player box is only shown when the script can load the player
+    button.addEventListener('click', () => {
+      const iframe = document.createElement('iframe');
+      iframe.src = src;
+      iframe.title = frame.dataset.videoTitle ?? '视频';
+      iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+      iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-presentation');
+      iframe.allow = 'autoplay; fullscreen; picture-in-picture; encrypted-media';
+      iframe.allowFullscreen = true;
+      button.replaceWith(iframe);
+      iframe.focus();
+    }, { once: true });
+  }
+</script>

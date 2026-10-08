@@ -1,17 +1,47 @@
 ---
-// Home page: the sorted Production_Article_Set (pubDate DESC, Canonical_URL ASC).
+// Home page: latest works as a cover grid, category shortcuts, latest articles.
 import BaseLayout from '../layouts/BaseLayout.astro';
 import ArticleList from '../components/ArticleList.astro';
+import WorkGrid from '../components/WorkGrid.astro';
 import { getProductionArticles } from '../lib/articles';
+import { CATEGORIES, categoryPath } from '../lib/categories';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../lib/site-meta';
+import { getProductionWorks } from '../lib/works';
 
+const HOME_WORKS = 9;
+const HOME_ARTICLES = 5;
+const works = await getProductionWorks();
 const articles = await getProductionArticles();
 ---
-<BaseLayout>
+<BaseLayout wide>
   <h1>{SITE_TITLE}</h1>
   <p class="lead">{SITE_DESCRIPTION}</p>
-  <section aria-labelledby="latest-heading">
-    <h2 id="latest-heading" class="section-heading">最新文章</h2>
-    <ArticleList articles={articles} headingLevel={3} />
+
+  <nav aria-label="作品分类">
+    <ul class="tag-list">
+      {
+        CATEGORIES.map((c) => (
+          <li>
+            <a class="tag-link" href={categoryPath(c.slug)}>{c.label}</a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
+
+  <section aria-labelledby="works-heading">
+    <h2 id="works-heading" class="section-heading">最新作品</h2>
+    <WorkGrid works={works.slice(0, HOME_WORKS)} headingLevel={3} eagerCount={3} />
+    {works.length > HOME_WORKS && <p><a href="/works/">查看全部 {works.length} 件作品 →</a></p>}
   </section>
+
+  {
+    articles.length > 0 && (
+      <section aria-labelledby="latest-heading" class="home-articles">
+        <h2 id="latest-heading" class="section-heading">最新文章</h2>
+        <ArticleList articles={articles.slice(0, HOME_ARTICLES)} headingLevel={3} />
+        {articles.length > HOME_ARTICLES && <p><a href="/archive/">全部文章 →</a></p>}
+      </section>
+    )
+  }
 </BaseLayout>

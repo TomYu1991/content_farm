@@ -36,6 +36,8 @@
 # Repository variables (Settings > Secrets and variables > Actions > Variables):
 #   SITE_URL                   absolute HTTPS site root (Site_URL_Setting)
 #   CLOUDFLARE_PAGES_PROJECT   Pages project name (Direct Upload project)
+#   CF_ANALYTICS_TOKEN         optional Cloudflare Web Analytics site token
+#                              (cookie-free page analytics; see src/lib/analytics.ts)
 # The Pages project must be a Direct Upload project with no Git integration;
 # a Git-connected project would also build draft/* branches as previews.
 
@@ -64,6 +66,9 @@ jobs:
       contents: read
     env:
       SITE_URL: ${{ vars.SITE_URL }}
+      # Optional, public by design (it is embedded in the HTML): Cloudflare Web
+      # Analytics site token. Empty = no analytics script. Not a secret.
+      PUBLIC_CF_ANALYTICS_TOKEN: ${{ vars.CF_ANALYTICS_TOKEN }}
     steps:
       - name: Require an absolute HTTPS SITE_URL
         run: |

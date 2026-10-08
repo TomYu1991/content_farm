@@ -1,0 +1,15 @@
+---
+/**
+ * FTC-style affiliate disclosure, shown near the top of a page (before the
+ * first affiliate link) whenever the page contains affiliate links.
+ */
+import { AMAZON_ASSOCIATE, DISCLOSURE_PATH, MONETIZATION_TEXT as T } from '../lib/monetization';
+---
+<aside class="affiliate-notice" lang={T.lang} aria-label={T.disclosureTitle}>
+  <p>
+    <strong>{T.noticeLead}</strong>
+    {' '}{T.notice}
+    {AMAZON_ASSOCIATE && <>{' '}{T.amazonStatement}</>}
+    {' '}<a href={DISCLOSURE_PATH}>{T.noticeMore}</a>.
+  </p>
+</aside>

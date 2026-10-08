@@ -75,15 +75,18 @@ function compareStrings(a: string, b: string): number {
  * pubDate strings share the fixed `YYYY-MM-DDTHH:mm:ssZ` shape, so
  * lexicographic order equals chronological order.
  */
-export function compareArticles(
-  a: Pick<ProductionArticle, 'canonicalUrl' | 'data'>,
-  b: Pick<ProductionArticle, 'canonicalUrl' | 'data'>,
-): number {
+export function compareArticles(a: DatedEntry, b: DatedEntry): number {
   return compareStrings(b.data.pubDate, a.data.pubDate) || compareStrings(a.canonicalUrl, b.canonicalUrl);
 }
 
+/** Minimal shape shared by published articles and works (ordering, sitemap, RSS). */
+export interface DatedEntry {
+  canonicalUrl: string;
+  data: { pubDate: string; updatedDate?: string | undefined };
+}
+
 /** Return a new array sorted with `compareArticles`; the input is not mutated. */
-export function sortArticles<T extends Pick<ProductionArticle, 'canonicalUrl' | 'data'>>(
+export function sortArticles<T extends DatedEntry>(
   articles: readonly T[],
 ): T[] {
   return [...articles].sort(compareArticles);

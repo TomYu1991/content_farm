@@ -183,3 +183,21 @@ describe('articleSeo', () => {
     });
   });
 });
+
+describe('articleSeo share image', () => {
+  it('adds og:image tags and a large Twitter card only when an image is given', () => {
+    const [article] = production([entry('with-image')]);
+    const plain = articleSeo(article!, 'Site', 'zh-CN');
+    expect(plain.meta.some((m) => m.key === 'og:image')).toBe(false);
+    expect(plain.meta.find((m) => m.key === 'twitter:card')?.content).toBe('summary');
+
+    const image = { url: 'https://blog.example.org/_astro/cover.jpg', width: 1200, height: 800, alt: '成品' };
+    const seo = articleSeo(article!, 'Site', 'zh-CN', image);
+    const get = (key: string) => seo.meta.find((m) => m.key === key)?.content;
+    expect(get('og:image')).toBe(image.url);
+    expect(get('og:image:width')).toBe('1200');
+    expect(get('og:image:height')).toBe('800');
+    expect(get('og:image:alt')).toBe('成品');
+    expect(get('twitter:card')).toBe('summary_large_image');
+  });
+});

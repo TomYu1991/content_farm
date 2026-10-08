@@ -4,7 +4,9 @@
 import { render } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import TagLinks from '../../components/TagLinks.astro';
+import AffiliateNotice from '../../components/AffiliateNotice.astro';
 import { getProductionArticles, type PublishedArticle } from '../../lib/articles';
+import { bodyHasAffiliateLinks } from '../../lib/monetization';
 import { formatDate } from '../../lib/listing';
 import { articleSeo } from '../../lib/discovery';
 import { SITE_LANG, SITE_TITLE } from '../../lib/site-meta';
@@ -39,6 +41,7 @@ const seo = articleSeo(article, SITE_TITLE, SITE_LANG);
         }
       </p>
       <p class="lead">{data.description}</p>
+      {bodyHasAffiliateLinks(article.entry.body) && <AffiliateNotice />}
       <TagLinks tags={data.tags} />
     </header>
     <div class="prose">

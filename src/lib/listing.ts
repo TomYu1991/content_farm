@@ -6,7 +6,10 @@
  */
 import { sortArticles, type ProductionArticle } from './production-articles';
 
-type ListedArticle = Pick<ProductionArticle, 'canonicalUrl' | 'data'>;
+/** Articles and works both qualify (same ordering fields plus tags). */
+type ListedArticle = Pick<ProductionArticle, 'canonicalUrl'> & {
+  data: { pubDate: string; updatedDate?: string | undefined; tags: readonly string[] };
+};
 
 /** Route prefix of tag pages (matches `src/pages/tags/[tag].astro`). */
 export const TAG_ROUTE_PREFIX = '/tags/';

@@ -1,0 +1,77 @@
+---
+/**
+ * In-page filter by difficulty and status for the work grid that follows it
+ * inside the same `[data-work-filter-scope]` element. Progressive
+ * enhancement: the form stays hidden without JavaScript and every work
+ * remains listed. The selection is kept in the URL query
+ * (`?difficulty=beginner&status=in-progress`) so it can be shared.
+ */
+import { DIFFICULTY_LABELS, STATUS_LABELS } from '../lib/work-schema';
+
+const difficulties = Object.entries(DIFFICULTY_LABELS);
+const statuses = Object.entries(STATUS_LABELS);
+---
+<form class="work-filter" data-work-filter hidden>
+  <label>
+    难度
+    <select name="difficulty">
+      <option value="">全部</option>
+      {difficulties.map(([value, label]) => <option value={value}>{label}</option>)}
+    </select>
+  </label>
+  <label>
+    状态
+    <select name="status">
+      <option value="">全部</option>
+      {statuses.map(([value, label]) => <option value={value}>{label}</option>)}
+    </select>
+  </label>
+  <p class="work-filter__count" role="status" aria-live="polite"></p>
+</form>
+
+<script>
+  const FIELDS = ['difficulty', 'status'] as const;
+
+  for (const form of document.querySelectorAll<HTMLFormElement>('form[data-work-filter]')) {
+    const scope = form.closest<HTMLElement>('[data-work-filter-scope]');
+    const cards = scope ? [...scope.querySelectorAll<HTMLElement>('.work-card')] : [];
+    const count = form.querySelector<HTMLElement>('.work-filter__count');
+    const empty = scope?.querySelector<HTMLElement>('[data-work-filter-empty]');
+    if (cards.length < 2 || !count) continue;
+
+    const params = new URLSearchParams(location.search);
+    for (const name of FIELDS) {
+      const select = form.elements.namedItem(name);
+      const wanted = params.get(name);
+      if (select instanceof HTMLSelectElement && wanted && [...select.options].some((o) => o.value === wanted)) {
+        select.value = wanted;
+      }
+    }
+
+    const apply = () => {
+      const chosen = Object.fromEntries(
+        FIELDS.map((name) => [name, (form.elements.namedItem(name) as HTMLSelectElement).value]),
+      );
+      let shown = 0;
+      for (const card of cards) {
+        const match = FIELDS.every((name) => chosen[name] === '' || card.dataset[name] === chosen[name]);
+        card.hidden = !match;
+        if (match) shown += 1;
+      }
+      count.textContent = `显示 ${shown} / ${cards.length} 件作品`;
+      if (empty) empty.hidden = shown > 0;
+      const query = new URLSearchParams(location.search);
+      for (const name of FIELDS) {
+        if (chosen[name]) query.set(name, chosen[name]);
+        else query.delete(name);
+      }
+      const search = query.toString();
+      history.replaceState(null, '', `${location.pathname}${search ? `?${search}` : ''}${location.hash}`);
+    };
+
+    form.addEventListener('change', apply);
+    form.addEventListener('submit', (event) => event.preventDefault());
+    form.hidden = false;
+    apply();
+  }
+</script>

@@ -1,14 +1,15 @@
-// /rss.xml: RSS 2.0 feed of the sorted Production_Article_Set (static, built once).
+// /rss.xml: RSS 2.0 feed of published articles and works (static, built once).
 import rss from '@astrojs/rss';
 import type { APIRoute } from 'astro';
 import { getProductionArticles, getSiteUrl } from '../lib/articles';
 import { buildRssOptions } from '../lib/discovery';
 import { SITE_DESCRIPTION, SITE_LANG, SITE_TITLE } from '../lib/site-meta';
+import { getProductionWorks } from '../lib/works';
 
 export const GET: APIRoute = async () => {
-  const articles = await getProductionArticles();
+  const [articles, works] = await Promise.all([getProductionArticles(), getProductionWorks()]);
   const response = await rss(
-    buildRssOptions(articles, getSiteUrl(), {
+    buildRssOptions([...articles, ...works], getSiteUrl(), {
       title: SITE_TITLE,
       description: SITE_DESCRIPTION,
       language: SITE_LANG,

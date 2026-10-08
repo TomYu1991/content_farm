@@ -1,0 +1,20 @@
+---
+// All published works as a cover grid, newest first, with category chips and
+// an in-page difficulty/status filter.
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import CategoryNav from '../../components/CategoryNav.astro';
+import WorkFilter from '../../components/WorkFilter.astro';
+import WorkGrid from '../../components/WorkGrid.astro';
+import { getProductionWorks } from '../../lib/works';
+
+const works = await getProductionWorks();
+---
+<BaseLayout title="作品" description="全部手作作品，可按分类、难度和状态筛选。" wide>
+  <h1>作品</h1>
+  <CategoryNav works={works} />
+  <div data-work-filter-scope>
+    {works.length > 1 && <WorkFilter />}
+    <WorkGrid works={works} eagerCount={3} />
+    <p class="empty-state" data-work-filter-empty hidden>没有符合条件的作品。</p>
+  </div>
+</BaseLayout>

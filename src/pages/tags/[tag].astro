@@ -1,23 +1,47 @@
 ---
-// Per-tag page: the sorted Production_Article_Set items carrying this tag.
+// Per-tag page: published works and articles carrying this tag.
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ArticleList from '../../components/ArticleList.astro';
+import WorkGrid from '../../components/WorkGrid.astro';
 import { getProductionArticles, type PublishedArticle } from '../../lib/articles';
 import { groupByTag, type TagGroup } from '../../lib/listing';
+import { WORK_ROUTE_PREFIX } from '../../lib/production-works';
+import { getProductionWorks, type PublishedWork } from '../../lib/works';
+
+type Tagged = PublishedArticle | PublishedWork;
 
 export async function getStaticPaths() {
-  const groups = groupByTag(await getProductionArticles());
+  const [articles, works] = await Promise.all([getProductionArticles(), getProductionWorks()]);
+  const groups = groupByTag<Tagged>([...articles, ...works]);
   return groups.map((group) => ({ params: { tag: group.slug }, props: { group } }));
 }
 
 interface Props {
-  group: TagGroup<PublishedArticle>;
+  group: TagGroup<Tagged>;
 }
 
 const { group } = Astro.props;
+const isWork = (item: Tagged): item is PublishedWork => item.path.startsWith(WORK_ROUTE_PREFIX);
+const works = group.articles.filter(isWork);
+const articles = group.articles.filter((item): item is PublishedArticle => !isWork(item));
 ---
-<BaseLayout title={`标签：${group.label}`} description={`标签“${group.label}”下的文章。`}>
+<BaseLayout title={`标签：${group.label}`} description={`标签“${group.label}”下的作品与文章。`} wide={works.length > 0}>
   <h1>标签：{group.label}</h1>
   <p><a href="/tags/">← 全部标签</a></p>
-  <ArticleList articles={group.articles} />
+  {
+    works.length > 0 && (
+      <section aria-labelledby="tag-works">
+        <h2 id="tag-works">作品</h2>
+        <WorkGrid works={works} headingLevel={3} />
+      </section>
+    )
+  }
+  {
+    articles.length > 0 && (
+      <section aria-labelledby="tag-articles" class="home-articles">
+        <h2 id="tag-articles">文章</h2>
+        <ArticleList articles={articles} headingLevel={3} />
+      </section>
+    )
+  }
 </BaseLayout>

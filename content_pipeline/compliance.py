@@ -51,6 +51,13 @@ REVIEW_ITEM_LABELS: dict[str, str] = {
 }
 REQUIRED_REVIEW_ITEMS: tuple[str, ...] = tuple(REVIEW_ITEM_LABELS)
 
+# Extra, permanent review item for PRs that add or change works or their photos:
+# photos are the maker's own (or licensed), every alt text describes its photo,
+# photo metadata (EXIF/GPS) was removed and any embedded video is the maker's.
+MEDIA_REVIEW_ITEM_LABELS: dict[str, str] = {"media": "图片与视频"}
+MEDIA_REVIEW_ITEMS: tuple[str, ...] = tuple(MEDIA_REVIEW_ITEM_LABELS)
+ALL_REVIEW_ITEM_LABELS: dict[str, str] = {**REVIEW_ITEM_LABELS, **MEDIA_REVIEW_ITEM_LABELS}
+
 # Requirement 9.8: permanent MVP forbidden dependencies and credentials.
 REQUIRED_FORBIDDEN_DEPENDENCIES: frozenset[str] = frozenset(
     {"database", "redis", "postgres", "pgvector", "prefect", "task_queue", "vps", "docker", "ollama"}
