@@ -16,6 +16,7 @@ from content_pipeline.review_gate import (
     Revision,
     check_review_records,
     collect_article_changes,
+    collect_asset_changes,
     evaluate_review_gate,
     is_automation_author,
     main,
@@ -245,3 +246,32 @@ def test_collect_changes_and_cli_on_real_history(tmp_path: Path, capsys):
     assert main([*args, "--head", head]) == 0
     assert main([*args, "--head", base]) == 0  # no article changes: not applicable
     assert "not applicable" in capsys.readouterr().out
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
+def test_assets_gitkeep_placeholder_is_not_a_work_asset(tmp_path: Path, capsys):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git(repo, "init", "-q")
+    _write(repo, "docs/compliance.md", (REPO_ROOT / "docs" / "compliance.md").read_text(encoding="utf-8"))
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "base")
+    base = _git(repo, "rev-parse", "HEAD")
+
+    _write(repo, "src/assets/works/.gitkeep", "")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "placeholder")
+    placeholder_head = _git(repo, "rev-parse", "HEAD")
+
+    assert collect_asset_changes(repo, base, placeholder_head) == []
+    args = ["--repo", str(repo), "--base", base, "--body-env", "EMPTY_PR_BODY"]
+    assert main([*args, "--head", placeholder_head]) == 0  # no media record needed
+    assert "not applicable" in capsys.readouterr().out
+
+    _write(repo, "src/assets/works/demo/notes.md", "笔记")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "notes")
+    head = _git(repo, "rev-parse", "HEAD")
+
+    assert [a.path for a in collect_asset_changes(repo, base, head)] == ["src/assets/works/demo/notes.md"]
+    assert main([*args, "--head", head]) == 1  # a real asset still needs the media record

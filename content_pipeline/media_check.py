@@ -32,7 +32,8 @@ MAX_IMAGE_BYTES = 5 * 1024 * 1024
 MAX_NOTES_BYTES = 32 * 1024
 
 _IMAGE_NAME = re.compile(r"[a-z0-9][a-z0-9_-]{0,99}\.(jpg|jpeg|png|webp)")
-_PLACEHOLDER_FILES = frozenset({f"{WORK_ASSETS_ROOT}/.gitkeep"})
+# Empty files that only keep the directory in Git; not photos, never reviewed as assets.
+PLACEHOLDER_FILES = frozenset({f"{WORK_ASSETS_ROOT}/.gitkeep"})
 
 MSG_METADATA = "contains photo metadata ({}); re-import it with npm run ingest"
 
@@ -128,7 +129,7 @@ _PARSERS = {"jpg": _jpeg_metadata, "jpeg": _jpeg_metadata, "png": _png_metadata,
 
 def check_asset(path: str, data: bytes) -> list[FieldIssue]:
     """Rules for one added/modified file under ``src/assets/works/``."""
-    if path in _PLACEHOLDER_FILES:
+    if path in PLACEHOLDER_FILES:
         return []
     prefix = f"{WORK_ASSETS_ROOT}/"
     rest = path[len(prefix):] if path.startswith(prefix) else None

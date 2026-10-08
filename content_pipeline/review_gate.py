@@ -27,6 +27,7 @@ photos that exist in the PR head. PRs that add or change a work or any file
 under ``src/assets/works/`` additionally need the ``media`` record
 (图片与视频), and every added/modified asset must pass
 :func:`media_check.check_asset` (names, size, no EXIF/GPS/XMP metadata).
+Directory placeholders (``src/assets/works/.gitkeep``) are not assets.
 PRs that touch none of these paths are not subject to the gate.
 
 Git author identities are self-declared, so check 3 is a guard against the
@@ -60,7 +61,7 @@ from .compliance import (
     load_policy,
 )
 from .errors import FieldIssue, PipelineError
-from .media_check import check_asset
+from .media_check import PLACEHOLDER_FILES, check_asset
 from .work import WORK_ASSETS_ROOT, WORKS_ROOT, validate_work
 
 _HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
@@ -358,11 +359,17 @@ def _changed_paths(repo: Path, merge_base: str, head: str, *roots: str) -> list[
 
 
 def collect_asset_changes(repo: Path | str, base: str, head: str) -> list[AssetChange]:
-    """Added/modified files under ``src/assets/works/`` with their head bytes."""
+    """Added/modified files under ``src/assets/works/`` with their head bytes.
+
+    Directory placeholders (``.gitkeep``) are skipped, so a PR that only adds
+    them does not need the ``media`` record.
+    """
     repo = Path(repo)
     merge_base = _merge_base(repo, base, head)
     assets = []
     for path in _changed_paths(repo, merge_base, head, WORK_ASSETS_ROOT):
+        if path in PLACEHOLDER_FILES:
+            continue
         data = _git(repo, "show", f"{head}:{path}", check=False)
         if data is not None:
             assets.append(AssetChange(path=path, data=data))
